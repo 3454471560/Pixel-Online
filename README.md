@@ -2,7 +2,7 @@
 
 [![Language](https://img.shields.io/badge/Language-C%2B%2B20-blue.svg)](https://en.cppreference.com/w/cpp/20) [![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)]() [![Compiler](https://img.shields.io/badge/Compiler-MSVC%20v143%20(VS2022)-purple.svg)]() [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Pixel Online** 是一个基于 **C++20** 开发的**分层式2D网络游戏引擎与运行时框架**。项目以「高内聚、低耦合」为核心设计原则，通过 客户端/服务端模块化引导、全局上下文、动态接口注入三层核心抽象，构建了涵盖渲染、物理、音频、资源、ECS、网络的完整游戏开发管线，实现了现代游戏引擎的高性能与可扩展性设计。
+**Pixel Online** 是一个基于 **C++20** 开发的**分层式2D网络游戏项目与运行时框架**。项目以「高内聚、低耦合」为核心设计原则，通过 客户端/服务端模块化引导、全局上下文、动态接口注入三层核心抽象，构建了涵盖渲染、物理、音频、资源、ECS、网络的完整游戏开发管线，实现了现代游戏的高性能与可扩展性设计。
 
 ---
 
