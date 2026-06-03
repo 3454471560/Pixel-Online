@@ -74,10 +74,10 @@ Online 采用分层、模块化和数据驱动的架构，支持可插拔模块�
 1.  **克隆仓库:**
     
     ```bash
-    git clone --recursive https://github.com/3454471560/Pixel-Online
+    git clone https://github.com/3454471560/Pixel-Online
     ```
     
-    下载GitHub仓库Release中的 `Pixel-Online-third-.zip` 压缩包并解压缩 `thirdparty` 文件夹到`Online.sln`目录。
+    下载GitHub仓库Release中的 `Pixel-Online-third.zip` 压缩包并解压缩 `thirdparty` 文件夹到`Online.sln`目录。
     
 2.  **打开工程:**
     使用 Visual Studio 2022 打开根目录下的 `Online.sln`。
@@ -86,7 +86,7 @@ Online 采用分层、模块化和数据驱动的架构，支持可插拔模块�
     确保构建配置设为`Release` (x64)或`Debug`(x64)。
     
 4.  **生成硬编码资源:**
-    右键`Asset`项目重新生成，确保将`Asset\Generated`目录下的`.c`字节数据文件包含入项目。
+    右键项目Bin2C选择重新生成，右键`Asset`项目重新生成，确保将`Asset\Generated`目录下的`.c`字节数据文件包含入项目。
     
 5. **点击运行:**
 
