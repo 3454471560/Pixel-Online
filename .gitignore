@@ -3,6 +3,9 @@ bin/
 Obj/
 lib/
 
+# 硬编码资产目录
+Asset/Generated
+
 #VS C/C++编辑器配置文件
 CppProperties.json
 
