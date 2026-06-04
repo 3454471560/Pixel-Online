@@ -19,6 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Common\AnimatorCondition.h" />
+    <ClInclude Include="Common\AnimatorConditionMode.h" />
+    <ClInclude Include="Common\AnimatorParameter.h" />
+    <ClInclude Include="Common\AnimatorParameterType.h" />
+    <ClInclude Include="Common\AnimatorState.h" />
+    <ClInclude Include="Common\AnimatorTransition.h" />
     <ClInclude Include="Common\Direction.h" />
     <ClInclude Include="Common\EntityRefFixup.h" />
     <ClInclude Include="Common\FuncTable.h" />

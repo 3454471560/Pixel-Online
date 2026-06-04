@@ -87,6 +87,24 @@
     <ClInclude Include="Component\AnimatorController.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Common\AnimatorParameterType.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\AnimatorParameter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\AnimatorConditionMode.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\AnimatorCondition.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\AnimatorState.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\AnimatorTransition.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameWorld.cpp">

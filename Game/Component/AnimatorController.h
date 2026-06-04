@@ -1,4 +1,10 @@
 #pragma once
+#include <Game/Common/AnimatorParameterType.h>
+#include <Game/Common/AnimatorParameter.h>
+#include <Game/Common/AnimatorConditionMode.h>
+#include <Game/Common/AnimatorCondition.h>
+#include <Game/Common/AnimatorTransition.h>
+#include <Game/Common/AnimatorState.h>
 #include <Game/Component/Component.h>
 #include <Game/Component/Sprite.h>
 #include <Game/Component/Animator.h>
@@ -14,115 +20,6 @@
 
 namespace Online::Game
 {
-    enum class AnimatorParameterType : uint8_t
-    {
-        Float,
-        Bool,
-        Trigger
-    };
-
-    struct AnimatorParameter
-    {
-        std::string Name;
-        AnimatorParameterType Type = AnimatorParameterType::Float;
-        float FloatValue = 0.0f;
-
-        void Serialize(Online::Serialize::SerializeContext& ctx) const
-        {
-            ctx.Write("name", Name);
-            ctx.Write("type", static_cast<uint8_t>(Type));
-            ctx.Write("value", FloatValue);
-        }
-        void Deserialize(const Online::Serialize::DeserializeContext& ctx)
-        {
-            ctx.Read("name", Name);
-            uint8_t t; ctx.Read("type", t); Type = static_cast<AnimatorParameterType>(t);
-            ctx.Read("value", FloatValue);
-        }
-    };
-
-    enum class AnimatorConditionMode : uint8_t
-    {
-        If,
-        IfNot,
-        Greater,
-        Less,
-    };
-
-    struct AnimatorCondition
-    {
-        std::string ParameterName;
-        AnimatorConditionMode Mode = AnimatorConditionMode::If;
-        float Threshold = 0.0f;
-
-        void Serialize(Online::Serialize::SerializeContext& ctx) const
-        {
-            ctx.Write("param", ParameterName);
-            ctx.Write("mode", static_cast<uint8_t>(Mode));
-            ctx.Write("threshold", Threshold);
-        }
-        void Deserialize(const Online::Serialize::DeserializeContext& ctx)
-        {
-            ctx.Read("param", ParameterName);
-            uint8_t m; ctx.Read("mode", m); Mode = static_cast<AnimatorConditionMode>(m);
-            ctx.Read("threshold", Threshold);
-        }
-    };
-
-    struct AnimatorState
-    {
-        std::string Name;
-        Asset::AnimationClipID ClipID = Asset::AnimationClipID::Count;
-
-        void Serialize(Online::Serialize::SerializeContext& ctx) const
-        {
-            ctx.Write("name", Name);
-            ctx.Write("clipID", static_cast<int>(ClipID));
-        }
-        void Deserialize(const Online::Serialize::DeserializeContext& ctx)
-        {
-            ctx.Read("name", Name);
-            int cid; ctx.Read("clipID", cid);
-            ClipID = static_cast<Asset::AnimationClipID>(cid);
-        }
-    };
-
-    struct AnimatorTransition
-    {
-        std::string SourceState;
-        std::string DestState;
-        float Duration = 0.25f;
-        std::vector<AnimatorCondition> Conditions;
-
-        void Serialize(Online::Serialize::SerializeContext& ctx) const
-        {
-            ctx.Write("src", SourceState);
-            ctx.Write("dst", DestState);
-            ctx.Write("duration", Duration);
-            ctx.BeginArray("conditions");
-            for (const auto& c : Conditions)
-            {
-                Serialize::SerializeContext& cc = ctx.WriteArrayObjectBegin();
-                c.Serialize(cc);
-            }
-            ctx.EndArray();
-        }
-        void Deserialize(const Online::Serialize::DeserializeContext& ctx)
-        {
-            ctx.Read("src", SourceState);
-            ctx.Read("dst", DestState);
-            ctx.Read("duration", Duration);
-            const auto& arr = ctx.GetSubContext("conditions");
-            size_t cnt = 0;
-            if (arr.GetArraySize("", cnt))
-            {
-                Conditions.resize(cnt);
-                for (size_t i = 0; i < cnt; ++i)
-                    Conditions[i].Deserialize(arr.GetArrayElement(i));
-            }
-        }
-    };
-
     struct AnimatorController : public Component
     {
     public:
