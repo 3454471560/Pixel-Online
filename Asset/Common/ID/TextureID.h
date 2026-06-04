@@ -119,15 +119,24 @@ namespace Online::Asset
 
         return TextureID::Tex_Default;
     }
-
     inline std::string TextureIDToString(TextureID id)
     {
-        static const std::array<std::string, static_cast<size_t>(TextureID::Count)> lookup = {
+        static constexpr std::array<const char*, static_cast<size_t>(TextureID::Count)> lookup = {
+            // default
             "Tex_Default",
+            // HardCode
+            "Tex_Flag",
+            "Tex_ProgressBar",
+            "Tex_ProgressBar_Background",
+            "Tex_ProgressRun",
+            "Tex_Loading",
+            // BackGround
             "Tex_BackGround_Near",
             "Tex_BackGround_Mid",
             "Tex_BackGround_Far",
+            // Tileset
             "Tex_Tileset",
+            // SilverHat
             "Tex_SilverHat_Attack_1",
             "Tex_SilverHat_Attack_2",
             "Tex_SilverHat_Attack_3",
@@ -143,24 +152,28 @@ namespace Online::Asset
             "Tex_SilverHat_Strong_Attack",
             "Tex_SilverHat_Strong_Attack_Prepare",
             "Tex_SilverHat_Throw",
+            // Effect
             "Tex_SilverHat_Blade_Effect",
+            // Off-Screen
             "Tex_WindowBuffer",
             "Tex_BackBuffer_1",
             "Tex_BackBuffer_2",
+            // TileMap
             "Tex_TileMap1",
             "Tex_TileMap2",
             "Tex_TileMap3",
-            "Tex_TileMap4"
+            "Tex_TileMap4",
         };
 
-        const size_t index = static_cast<size_t>(id);
-        if (index >= lookup.size())
-        {
-            return "Tex_Default";
-        }
+        const size_t idx = static_cast<size_t>(id);
+        if (idx >= lookup.size())
+            return lookup[0]; // Ô½½ç·µ»ØDefault
 
-        return lookup[index];
+        std::string name = std::string(lookup[idx]);
+
+        return name;
     }
+
 
     inline TextureID TileMapIDToTextureID(Online::Config::TileMapID ID)
     {

@@ -274,6 +274,11 @@ namespace Online::Game
             return RenderQueueType;
         }
 
+        inline void SetRenderQueue(Render::RenderQueue queue) noexcept
+        {
+            RenderQueueType = queue;
+        }
+
         inline Online::Config::TileMapID GetTileMapID() const
         {
             return ID;

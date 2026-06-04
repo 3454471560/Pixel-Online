@@ -89,6 +89,7 @@ namespace Online::Game
         void ProcessFollowSystem(float deltaTime);
         void ProcessColliderSystem();
         void ProcessColliderListSystem();
+        void ProcessAnimatorControllerSystem(float deltaTime);
 
         bool IsDescendant(entt::entity maybeChild, entt::entity maybeParent);
         void UnlinkFromCurrent(entt::entity entity);

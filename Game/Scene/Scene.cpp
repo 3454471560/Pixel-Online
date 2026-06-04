@@ -112,6 +112,18 @@ namespace Online::Game
                     ? static_cast<uint32_t>(follow->GetTarget()->GetGameObject()->GetEntity())
                     : static_cast<uint32_t>(entt::null));
             }
+            if (auto* AC = ecsRegistry.try_get<AnimatorController>(entity))
+            {
+                AC->Serialize(entityCtx.GetSubContext("AnimatorController"));
+
+                entityCtx.Write("mainEntity", AC->GetMainAnimator()
+                    ? static_cast<uint32_t>(AC->GetMainAnimator()->GetGameObject()->GetEntity())
+                    : static_cast<uint32_t>(entt::null));
+
+                entityCtx.Write("overlayEntity", AC->GetOverlayAnimator()
+                    ? static_cast<uint32_t>(AC->GetOverlayAnimator()->GetGameObject()->GetEntity())
+                    : static_cast<uint32_t>(entt::null));
+            }
             if (auto* audSrc = ecsRegistry.try_get<AudioSource>(entity))
             {
                 audSrc->Serialize(entityCtx.GetSubContext("AudioSource"));
@@ -277,6 +289,15 @@ namespace Online::Game
                 fixup.hasFollow = true;
                 entityCtx.Read("targetEntity", fixup.targetEntityId);
             }
+            if (entityCtx.HasSubContext("AnimatorController"))
+            {
+                auto& AC = ecsRegistry.emplace<AnimatorController>(entity);
+                AC.Deserialize(entityCtx.GetSubContext("AnimatorController"));
+
+                fixup.hasAnimatorController = true;
+                entityCtx.Read("mainEntity", fixup.mainEntityId);
+                entityCtx.Read("overlayEntity", fixup.overlayEntityId);
+            }
             if (entityCtx.HasSubContext("AudioSource"))
             {
                 auto& src = ecsRegistry.emplace<AudioSource>(entity);
@@ -434,6 +455,32 @@ namespace Online::Game
                         anim->SetSprite(sprite);
                     }
                 }
+            }
+
+            if (fixup.hasAnimatorController)
+            {
+                auto* AC = ecsRegistry.try_get<AnimatorController>(entity);
+                if (!AC) continue;
+
+                if (fixup.mainEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.mainEntityId))
+                {
+                    if (auto* anim = ecsRegistry.try_get<Animator>(idMap[fixup.mainEntityId]))
+                    {
+                        AC->SetMainAnimator(anim);
+                    }
+                }
+
+                if (fixup.overlayEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.overlayEntityId))
+                {
+                    entt::entity overlayEnt = idMap[fixup.overlayEntityId];
+                    if (auto* overlayAnim = ecsRegistry.try_get<Animator>(overlayEnt))
+                        AC->SetOverlayAnimator(overlayAnim);
+                }
+
+                if (!AC->GetCurrentStateName().empty())
+                    AC->Play(AC->GetCurrentStateName());
+                else if (!AC->GetDefaultStateName().empty())
+                    AC->Play(AC->GetDefaultStateName());
             }
         }
 
@@ -964,6 +1011,88 @@ namespace Online::Game
                     Offset += GetComponent<Transform>(root)->GetLocalPosition();
                     Angle += GetComponent<Transform>(root)->GetLocalRotation();
                     root = GetComponent<Parent>(root) ? GetComponent<Parent>(root)->GetId() : entt::null;
+                }
+            }
+        }
+    }
+
+    void Scene::ProcessAnimatorControllerSystem(float deltaTime)
+    {
+        auto view = ecsRegistry.view<AnimatorController>();
+        for (auto [entity, controller] : view.each())
+        {
+            GameObject* obj = GetGameObject(entity);
+            if (obj && !obj->IsActive()) 
+                continue;
+
+            Sprite* mainSpr = controller.GetMainSprite();
+            if (!mainSpr) continue;
+
+            for (auto& [name, param] : controller.GetParameters())
+            {
+                if (param.Type == AnimatorParameterType::Trigger && param.FloatValue != 0.0f)
+                    param.FloatValue = 0.0f;
+            }
+
+            if (!controller.GetIsCrossfading())
+            {
+                for (const auto& trans : controller.GetTransitions())
+                {
+                    if (trans.SourceState != controller.GetCurrentStateName())
+                        continue;
+
+                    bool allMet = true;
+                    for (const auto& cond : trans.Conditions)
+                    {
+                        const auto& params = controller.GetParameters();
+                        auto pit = params.find(cond.ParameterName);
+                        if (pit == params.end())
+                        {
+                            allMet = false;
+                            break;
+                        }
+                        float val = pit->second.FloatValue;
+                        bool met = false;
+                        switch (cond.Mode)
+                        {
+                        case AnimatorConditionMode::If:      met = (val == cond.Threshold); break;
+                        case AnimatorConditionMode::IfNot:   met = (val != cond.Threshold); break;
+                        case AnimatorConditionMode::Greater: met = (val > cond.Threshold);  break;
+                        case AnimatorConditionMode::Less:    met = (val < cond.Threshold);  break;
+                        }
+                        if (!met)
+                        {
+                            allMet = false;
+                            break;
+                        }
+                    }
+
+                    if (allMet)
+                    {
+                        if (trans.Duration <= 0.0f)
+                            controller.Play(trans.DestState);
+                        else
+                            controller.Crossfade(trans.DestState, trans.Duration);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                float newTimer = controller.GetCrossfadeTimer() + deltaTime;
+                controller.SetCrossfadeTimer(newTimer);
+
+                float t = newTimer / controller.GetCrossfadeDuration();
+                if (t >= 1.0f)
+                {
+                    controller.EndCrossfade();
+                }
+                else
+                {
+                    mainSpr->SetAlpha(1.0f - t);
+                    Sprite* overSpr = controller.GetOverlaySprite();
+                    if (overSpr)
+                        overSpr->SetAlpha(t);
                 }
             }
         }

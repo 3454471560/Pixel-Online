@@ -19,6 +19,7 @@
 #include<Game/Component/Rigidbody.h>
 #include<Game/Component/ColliderList.h>
 #include<Game/Component/TileMap.h>
+#include<Game/Component/AnimatorController.h>
 
 #include<Script/Common/FuncTable.h>
 

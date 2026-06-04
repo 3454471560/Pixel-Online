@@ -97,11 +97,16 @@ namespace Online::Asset
         for (auto& flag : fontReady) flag.store(false, std::memory_order_release);
         for (auto& flag : animReady) flag.store(false, std::memory_order_release);
 
+        isRunning.store(true, std::memory_order_release);
+
+
         animsPool.reserve(animationInfo.size() + 10);
         LoadHardAsset();
         LoadBuiltinAssets();
         LoadAnimationClipAssets(animationInfo);
 		LoadTileMapAssets(tileMapInfo);
+
+        isRunning.store(true, std::memory_order_release);
 
         loaderThread = Online::Thread::RegisterThread("Asset", &Online::Asset::AssetHub::BootstrapLogThread, this, nullptr);
         return true;
@@ -129,7 +134,7 @@ namespace Online::Asset
         uint8_t idx = static_cast<uint8_t>(id);
         if (idx >= static_cast<uint8_t>(TextureID::Count))
         {
-            Online::Log::Error("[AssetHub] Invalid TextureID: " + Online::Asset::TextureIDToString(id));
+            Online::Log::Error("[AssetHub] Overflow Invalid TextureID: " + Online::Asset::TextureIDToString(id));
             return nullptr;
         }
         if (textures[idx] == nullptr)
@@ -513,30 +518,31 @@ namespace Online::Asset
     }
     void AssetHub::LoadBuiltinAssets()
     {
+        for (const auto& [id, path] : BuiltinTexturePaths)
+            resultQueue.Push((LoadTextureInternal(id, path.is_absolute()
+                ? path
+                : std::filesystem::path(Online::Core::GetExeDir()) / path)));
+
+        for (const auto& [id, path] : BuiltinSoundPaths)
+            resultQueue.Push((LoadSoundInternal(id, path.is_absolute()
+                ? path
+                : std::filesystem::path(Online::Core::GetExeDir()) / path)));
+
+        for (const auto& [id, pathSize] : BuiltinFontPaths)
+            resultQueue.Push((LoadFontInternal(id, pathSize.first.is_absolute()
+                ? pathSize.first
+                : std::filesystem::path(Online::Core::GetExeDir()) / pathSize.first, pathSize.second)));
+
+
+        isLoadedBuiltinAssets.store(true, std::memory_order_release);
+
+        if (IsAllAssetsLoaded())
+        {
+            isRunning.store(true, std::memory_order_release);
+        }
         Online::Task::PostJob([this]()
             {
-                for (const auto& [id, path] : BuiltinTexturePaths)
-                    resultQueue.Push((LoadTextureInternal(id, path.is_absolute()
-                        ? path
-                        : std::filesystem::path(Online::Core::GetExeDir()) / path)));
 
-                for (const auto& [id, path] : BuiltinSoundPaths)
-                    resultQueue.Push((LoadSoundInternal(id, path.is_absolute()
-                        ? path
-                        : std::filesystem::path(Online::Core::GetExeDir()) / path)));
-
-                for (const auto& [id, pathSize] : BuiltinFontPaths)
-                    resultQueue.Push((LoadFontInternal(id, pathSize.first.is_absolute()
-                        ? pathSize.first
-                        : std::filesystem::path(Online::Core::GetExeDir()) / pathSize.first, pathSize.second)));
-
-                
-                isLoadedBuiltinAssets.store(true, std::memory_order_release);
-
-                if(IsAllAssetsLoaded())
-                {
-                    isRunning.store(true, std::memory_order_release);
-                }
 
             }, "Load Buildin Asset");
     }

@@ -46,19 +46,53 @@ bool Online::Game::GameWorld::Initialize()
 
 	GameObject* phys = activeScene->CreateGameObject("dog");
 	Transform* wuli = phys->GetComponent<Transform>();
-	wuli->SetLocalScale({ 2,2 });
+	wuli->SetLocalScale({ 4,4 });
 	wuli->SetLocalPosition({ 700,800 });
-	Sprite& animwuli = phys->AddComponent<Sprite>();
-	animwuli.SetRenderQueue(Render::RenderQueue::Overlay);
-	animwuli.SetDepth(4);
-	animwuli.SetRenderOffset({ 10,0 });
-	Animator& aawuli = phys->AddComponent<Animator>();
-	aawuli.SetSprite(&animwuli);
-	aawuli.Play(Asset::AnimationClipID::Anim_ProgressRun);
+
+	Sprite& mainSprite = phys->AddComponent<Sprite>();
+	Animator& mainAnim = phys->AddComponent<Animator>();
+	mainSprite.SetRenderOffset({0,-58});
+	mainSprite.SetRenderQueue(Render::RenderQueue::World);
+	mainAnim.SetSprite(&mainSprite);
+
+	GameObject* overlayGO = activeScene->CreateGameObject("Overlay");
+	overlayGO->SetParent(phys);
+	Sprite& overlaySprite = overlayGO->AddComponent<Sprite>();
+	Animator& overlayAnim = overlayGO->AddComponent<Animator>();
+	overlaySprite.SetRenderOffset({ 0,-55 });
+	overlayAnim.SetSprite(&overlaySprite);
+	overlaySprite.OnDisable();
+
+	AnimatorController& controller = phys->AddComponent<AnimatorController>();
+	controller.SetStates({
+		{ "Idle", Asset::AnimationClipID::Anim_SilverHat_Idle },
+        { "Run",  Asset::AnimationClipID::Anim_SilverHat_Run }
+		});
+	controller.SetMainAnimator(&mainAnim);
+	controller.SetOverlayAnimator(&overlayAnim);
+
+	controller.SetTransitions({
+	{
+		"Idle",
+		"Run",
+		0.0f,
+		{ { "Speed", AnimatorConditionMode::Greater, 0.1f } }
+	},
+	{
+		"Run",
+		"Idle",
+		0.0f,
+		{ { "Speed", AnimatorConditionMode::Less, 0.1f } }
+	}
+		});
+
+	controller.SetDefaultStateName("Idle");
+	controller.Play("Idle");
+
 	Collider& col = phys->AddComponent<Collider>();
-	col.SetShape(Physics::ColliderShape::Box);
-	col.SetHalfSize({ 35,20 });
-	//col.SetOffset({ 90,35 });
+	col.SetShape(Physics::ColliderShape::Capsule);
+	col.SetHalfSize({ 12,6 });
+	col.SetRadius(12);
 	col.SetCategoryBits(Physics::PhysicsLayer::Player);
 	Rigidbody& rb = phys->AddComponent<Rigidbody>();
 	rb.SetGravityScale(1.5);
@@ -86,7 +120,7 @@ bool Online::Game::GameWorld::Initialize()
 	tiletrans->SetLocalScale({ 4,4 });
 	TileMap& tilemap = tile->AddComponent<TileMap>();
 	tilemap.SetTileMapID(Config::TileMapID::Map_01);
-	//tilemap.SetColliderOffset({ 15,14 });
+	tilemap.SetRenderQueue(Render::RenderQueue::Background);
 
 
 	GameObject* tri = activeScene->CreateGameObject("Tri");
@@ -154,6 +188,7 @@ void Online::Game::GameWorld::LateUpdate()
 	{
 		activeScene->ProcessFollowSystem(Online::Time::delta());
 		activeScene->ProcessAnimationSystem(Online::Time::delta());
+		activeScene->ProcessAnimatorControllerSystem(Online::Time::delta());
 		activeScene->ProcessProgressBarSystem(Online::Time::delta());
 	}
 }

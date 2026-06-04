@@ -24,6 +24,7 @@
     <ClInclude Include="Common\FuncTable.h" />
     <ClInclude Include="Common\SrcRectMode.h" />
     <ClInclude Include="Component\Animator.h" />
+    <ClInclude Include="Component\AnimatorController.h" />
     <ClInclude Include="Component\AudioListener.h" />
     <ClInclude Include="Component\AudioSource.h" />
     <ClInclude Include="Component\Camera.h" />

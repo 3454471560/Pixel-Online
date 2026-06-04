@@ -27,16 +27,34 @@ namespace Online::Script
             auto* data = go->GetScriptData<MoveData>(ScriptFunctionID::MoveLeftRight);
             auto* trans = go->GetTransform();
 			auto* rigi = go->GetComponent<Game::Rigidbody>();
+            auto* anco = go->GetComponent<Game::AnimatorController>();
+            auto* spri = go->GetComponent<Game::Sprite>();
 
             data->direction = 0.0f;
 
             if (Input::GetKeyDown(Input::KeyCode::A))
+            {
                 data->direction -= 1.0f;
+                spri->SetFlipX(true);
+            }
 
             if (Input::GetKeyDown(Input::KeyCode::D))
+            {
                 data->direction += 1.0f;
+                spri->SetFlipX(false);
+            }
 
             Physics::AddDebugRay(trans->GetWorldPosition(), { 0,1 }, 80, Core::Color::Red);
+
+            if (data->direction != 0)
+            {
+                anco->SetFloat("Speed", 1.0f);
+            }
+            else
+            {
+                anco->SetFloat("Speed", 0.0f);
+            }
+
 
             Physics::RayCastHit hit;
 
