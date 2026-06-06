@@ -7,6 +7,8 @@ namespace Online::Script
     {
         MoveLeftRight,
         RotateOverTime,
+        BeginScene,
+        LoadingScene,
         HealthBarController,
         Count
     };

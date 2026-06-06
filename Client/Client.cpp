@@ -193,9 +193,25 @@ namespace
 	{
 		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Asset::AssetHub>()->GetTextureSize(id);
 	}
+	inline int OnGetFontSize(Online::Asset::FontID id) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Asset::AssetHub>()->GetFontSize(id);
+	}
 	inline float OnGetAssetLoadProgress() noexcept
 	{
 		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Asset::AssetHub>()->GetAsstetLoadProgress();
+	}
+	inline glm::ivec2 OnGetFontAtlasCoord(char32_t ch) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Asset::AssetHub>()->GetFontAtlasCoord(ch);
+	}
+	inline SDL_Rect OnGetFontAtlasSrcRect(Online::Asset::FontID id, char32_t ch) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Asset::AssetHub>()->GetFontAtlasSrcRect(id, ch);
+	}
+	inline int GetFontAtlasAdvance(Online::Asset::FontID id, char32_t ch) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Asset::AssetHub>()->GetFontAtlasAdvance(id, ch);
 	}
 #pragma endregion
 
@@ -212,7 +228,10 @@ namespace
 	{
 		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Config::Configurator>()->GetTileMap(ID);
 	}
-
+	inline const std::vector<Online::Config::CharLayout>& OnGetCharLayouts() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Config::Configurator>()->GetCharLayouts();
+	}
 #pragma endregion
 
 #pragma region Window
@@ -274,6 +293,30 @@ namespace
 	inline float OnGetWorldRotation(entt::entity entity) noexcept
 	{
 		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->GetWorldRotation(entity);
+	}
+	inline void OnSwitchSceneAfterLoadingAsync(const std::string& newSceneName) noexcept
+	{
+		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->SwitchSceneAfterLoadingAsync(newSceneName);
+	}
+	inline void OnSwitchSceneAsync(const std::string& newSceneName) noexcept
+	{
+		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->SwitchSceneAsync(newSceneName);
+	}
+	inline void OnLoadScene(const std::string& sceneName) noexcept
+	{
+		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->LoadScene(sceneName);
+	}
+	inline bool OnIsSceneLoading() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->IsSceneLoading();
+	}
+	inline void OnDisplayPendingScene() noexcept
+	{
+		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->DisplayPendingScene();
+	}
+	inline bool OnIsPendingSceneReady() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->IsPendingSceneReady();
 	}
 #pragma endregion
 
@@ -522,7 +565,11 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(AssetHub).GetFont = OnGetFont;
 		FUNCTABLE(AssetHub).GetAnim = OnGetAnim;
 		FUNCTABLE(AssetHub).GetTextureSize = OnGetTextureSize;
-		FUNCTABLE(AssetHub).OnGetAsstetLoadProgress = OnGetAssetLoadProgress;
+		FUNCTABLE(AssetHub).GetFontSize = OnGetFontSize;
+		FUNCTABLE(AssetHub).OnGetAssetLoadProgress = OnGetAssetLoadProgress;
+		FUNCTABLE(AssetHub).OnGetFontAtlasCoord = OnGetFontAtlasCoord;
+		FUNCTABLE(AssetHub).OnGetFontAtlasSrcRect = OnGetFontAtlasSrcRect;
+		FUNCTABLE(AssetHub).OnGetFontAtlasAdvance = GetFontAtlasAdvance;
 #pragma endregion
 
 #pragma region Task
@@ -543,6 +590,7 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(Configurator).OnGetRenderAPI = OnGetRenderAPI;
 		FUNCTABLE(Configurator).OnGetEnableVSync = OnGetEnableVSync;
 		FUNCTABLE(Configurator).GetTileMap = OnGetTileMap;
+		FUNCTABLE(Configurator).GetCharLayouts = OnGetCharLayouts;
 #pragma endregion
 
 #pragma region Window
@@ -562,6 +610,12 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(GameWorld).OnTransformUpdater = OnTransformUpdater;
 		FUNCTABLE(GameWorld).OnGetWorldPosition = OnGetWorldPosition;
 		FUNCTABLE(GameWorld).OnGetWorldRotation = OnGetWorldRotation;
+		FUNCTABLE(GameWorld).OnSwitchSceneAfterLoadingAsync = OnSwitchSceneAfterLoadingAsync;
+		FUNCTABLE(GameWorld).OnSwitchSceneAsync = OnSwitchSceneAsync;
+		FUNCTABLE(GameWorld).OnLoadScene = OnLoadScene;
+		FUNCTABLE(GameWorld).OnIsSceneLoading = OnIsSceneLoading;
+		FUNCTABLE(GameWorld).OnDisplayPendingScene = OnDisplayPendingScene;
+		FUNCTABLE(GameWorld).OnIsPendingSceneReady = OnIsPendingSceneReady;
 #pragma endregion
 
 #pragma region Net
@@ -907,6 +961,30 @@ void Online::Runtime::Client::Render()
 			);
 		} 
 
+		for (auto [entity, transform, textComp] : scene->GetView<Online::Game::Transform, Online::Game::Text>().each())
+		{
+			Online::Game::GameObject* obj = Online::Game::GetGameObject(entity);
+			if (!obj || !obj->IsActive() || !textComp.IsVisible())
+				continue;
+
+			MODULE(RenderPipeline)->AddRenderText(
+				textComp.GetLayerMask(),
+				textComp.GetFont(),
+				textComp.GetText(),
+				textComp.GetRenderQueue(),
+				textComp.GetDrawOrder(),
+				textComp.GetDepth(),
+				transform.GetWorldPosition() + textComp.GetOffset(),
+				transform.GetWorldScaleAverage(),
+				transform.GetWorldRotation() + textComp.GetRotation(),
+				textComp.GetPivot(),
+				textComp.GetColor(),
+				textComp.GetAnchor(),
+				textComp.GetLetterSpacing(),
+				textComp.GetWidthLimit()
+			);
+		}
+
 		for (auto [entity, transform, camera] : scene->GetView<Online::Game::Transform, Online::Game::Camera>().each())
 		{
 			Online::Game::GameObject* obj = Online::Game::GetGameObject(entity);
@@ -948,6 +1026,8 @@ void Online::Runtime::Client::Render()
 				transform.GetWorldRotation()
 			);
 		}
+
+
 	}
 
 	MODULE(RenderPipeline)->Execute(MODULE(Renderer).Get());

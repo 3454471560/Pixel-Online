@@ -4,6 +4,7 @@
 #include <Asset/AssetResources.h>
 #include <Log/Common/FuncTable.h>
 #include <Task/Common/FuncTable.h>
+#include <Config/Common/FuncTable.h>
 
 #include <algorithm>
 #include <stdexcept>
@@ -49,8 +50,8 @@ namespace Online::Asset
 
     const std::unordered_map<FontID, std::pair<std::filesystem::path, int>> AssetHub::BuiltinFontPaths =
     {
-        //{ FontID::Click, { "Resource/Fonts/Default.ttf", 24 } },
-        //{ FontID::BGM,   { "Resource/Fonts/Title.ttf", 36 } }
+        { FontID::Ipix, { "Resource/Font/ipix.ttf", 36 }, },
+        { FontID::Deng, { "Resource/Font/Deng.ttf", 36 }, }
     };
 
     bool AssetHub::Initialize(const std::vector<Online::Config::AnimationInfo>&  animationInfo,
@@ -346,6 +347,8 @@ namespace Online::Asset
                             fonts[idx] = res.font;
                             fontReady[idx].store(true, std::memory_order_release);
                             Online::Log::Info("[AssetHub] Font ready, ID: " + std::to_string(idx));
+
+                            BuildFontAtlasTexture(res.id, res.font);
                         }
                         else
                         {
@@ -429,6 +432,18 @@ namespace Online::Asset
         }
 
         return textureSizes[idx];
+    }
+    size_t AssetHub::GetFontSize(FontID id) const
+    {
+        uint8_t idx = static_cast<uint8_t>(id);
+
+        if (idx >= static_cast<uint8_t>(FontID::Count))
+        {
+            Online::Log::Warning("[AssetHub] GetFontSize: Invalid TextureID -> " + std::to_string(idx));
+            return 24;
+        }
+
+        return fontSizes[idx];
     }
 
     void AssetHub::LoadHardAsset()
@@ -518,31 +533,30 @@ namespace Online::Asset
     }
     void AssetHub::LoadBuiltinAssets()
     {
-        for (const auto& [id, path] : BuiltinTexturePaths)
-            resultQueue.Push((LoadTextureInternal(id, path.is_absolute()
-                ? path
-                : std::filesystem::path(Online::Core::GetExeDir()) / path)));
-
-        for (const auto& [id, path] : BuiltinSoundPaths)
-            resultQueue.Push((LoadSoundInternal(id, path.is_absolute()
-                ? path
-                : std::filesystem::path(Online::Core::GetExeDir()) / path)));
-
-        for (const auto& [id, pathSize] : BuiltinFontPaths)
-            resultQueue.Push((LoadFontInternal(id, pathSize.first.is_absolute()
-                ? pathSize.first
-                : std::filesystem::path(Online::Core::GetExeDir()) / pathSize.first, pathSize.second)));
-
-
-        isLoadedBuiltinAssets.store(true, std::memory_order_release);
-
-        if (IsAllAssetsLoaded())
-        {
-            isRunning.store(true, std::memory_order_release);
-        }
         Online::Task::PostJob([this]()
             {
+                for (const auto& [id, path] : BuiltinTexturePaths)
+                    resultQueue.Push((LoadTextureInternal(id, path.is_absolute()
+                        ? path
+                        : std::filesystem::path(Online::Core::GetExeDir()) / path)));
 
+                for (const auto& [id, path] : BuiltinSoundPaths)
+                    resultQueue.Push((LoadSoundInternal(id, path.is_absolute()
+                        ? path
+                        : std::filesystem::path(Online::Core::GetExeDir()) / path)));
+
+                for (const auto& [id, pathSize] : BuiltinFontPaths)
+                    resultQueue.Push((LoadFontInternal(id, pathSize.first.is_absolute()
+                        ? pathSize.first
+                        : std::filesystem::path(Online::Core::GetExeDir()) / pathSize.first, pathSize.second)));
+
+
+                isLoadedBuiltinAssets.store(true, std::memory_order_release);
+
+                if (IsAllAssetsLoaded())
+                {
+                    isRunning.store(true, std::memory_order_release);
+                }
 
             }, "Load Buildin Asset");
     }
@@ -597,6 +611,117 @@ namespace Online::Asset
             isRunning.store(true, std::memory_order_release);
         }
     }
+
+    void AssetHub::BuildFontAtlasTexture(FontID ID, TTF_Font* font)
+    {
+        if (!sdlRenderer)
+        {
+            Online::Log::Error("[AssetHub] BuildFontAtlasTexture failed: SDL_Renderer not bound");
+            return;
+        }
+
+        const auto& layouts = Config::GetCharLayouts();
+        if (layouts.empty())
+        {
+            Online::Log::Warning("[AssetHub] CharLayout is empty, skip font atlas");
+            return;
+        }
+
+        const int cellSize = static_cast<int>(fontSizes[static_cast<size_t>(ID)]);
+        const int cellW = cellSize;
+        const int cellH = cellSize;
+
+        const int maxCols = 32;
+        const int totalChars = static_cast<int>(layouts.size());
+        const int gridCols = maxCols;
+        const int gridRows = (totalChars + gridCols - 1) / gridCols;
+
+        const int atlasWidth = gridCols * cellW;
+        const int atlasHeight = gridRows * cellH;
+
+        SDL_Texture* atlasTex = SDL_CreateTexture(sdlRenderer,
+            SDL_PIXELFORMAT_RGBA8888,
+            SDL_TEXTUREACCESS_TARGET,
+            atlasWidth, atlasHeight);
+        if (!atlasTex)
+        {
+            Online::Log::Error(std::string("[AssetHub] Create font atlas texture failed: ") + SDL_GetError());
+            return;
+        }
+        SDL_SetTextureBlendMode(atlasTex, SDL_BLENDMODE_BLEND);
+
+        SDL_Texture* oldTarget = SDL_GetRenderTarget(sdlRenderer);
+        SDL_SetRenderTarget(sdlRenderer, atlasTex);
+        SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 0);
+        SDL_RenderClear(sdlRenderer);
+
+        SDL_Color white = { 255, 255, 255, 255 };
+
+        // 获取当前字体的坐标映射和 advance 映射
+        auto& coordMap = fontAtlasCoordMaps[ID];
+        auto& advanceMap = fontAtlasAdvanceMaps[ID];
+        coordMap.clear();
+        advanceMap.clear();
+
+        for (size_t i = 0; i < layouts.size(); ++i)
+        {
+            char32_t ch = layouts[i].character;
+
+            int col = static_cast<int>(i) % gridCols;
+            int row = static_cast<int>(i) / gridCols;
+
+            coordMap[ch] = { col, row };
+
+            char utf8[5] = { 0 };
+            size_t len = Online::Core::CodepointToUtf8(ch, utf8);
+            if (len == 0) continue;
+            utf8[len] = '\0';
+
+            SDL_Surface* glyphSurf = TTF_RenderUTF8_Blended(font, utf8, white);
+            if (!glyphSurf) continue;
+
+            SDL_Texture* glyphTex = SDL_CreateTextureFromSurface(sdlRenderer, glyphSurf);
+            SDL_Rect srcRect = { 0, 0, glyphSurf->w, glyphSurf->h };
+
+            // 字形左对齐，垂直居中
+            int offsetX = 0;
+            int offsetY = (cellH - glyphSurf->h) / 2;
+            SDL_Rect dstRect = {
+                col * cellW + offsetX,
+                row * cellH + offsetY,
+                glyphSurf->w,
+                glyphSurf->h
+            };
+
+            SDL_RenderCopy(sdlRenderer, glyphTex, &srcRect, &dstRect);
+
+            int advance = 0;
+            TTF_GlyphMetrics(font, ch, nullptr, nullptr, nullptr, nullptr, &advance);
+            advanceMap[ch] = advance;
+
+            SDL_DestroyTexture(glyphTex);
+            SDL_FreeSurface(glyphSurf);
+        }
+
+        SDL_SetRenderTarget(sdlRenderer, oldTarget);
+
+        TextureID texID = FontIDToTextureID(ID);
+        const uint8_t atlasIdx = static_cast<uint8_t>(texID);
+
+        if (textures[atlasIdx])
+            SDL_DestroyTexture(textures[atlasIdx]);
+
+        textures[atlasIdx] = atlasTex;
+        textureSizes[atlasIdx] = { atlasWidth, atlasHeight };
+        textureReady[atlasIdx].store(true, std::memory_order_release);
+
+        SaveTextureToPNG(atlasTex);
+
+        Online::Log::Info("[AssetHub] Font atlas texture built successfully for FontID: " +
+            std::to_string(static_cast<int>(ID)));
+    }
+
+
     void AssetHub::LoaderThreadFunc()
     {
         while (isRunning.load(std::memory_order_acquire))
@@ -695,6 +820,10 @@ namespace Online::Asset
 
         res.font = TTF_OpenFont(path.string().c_str(), fontSize);
         res.success = (res.font != nullptr);
+
+        uint8_t idx = static_cast<uint8_t>(id);
+		fontSizes[idx] = fontSize;
+
         if (!res.success)
         {
             Online::Log::Error(std::string("[AssetHub] TTF_OpenFont failed: ") + TTF_GetError() + ", Path: " + path.string());

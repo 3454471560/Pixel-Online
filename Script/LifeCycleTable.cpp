@@ -1,6 +1,8 @@
 #include <Script/LifeCycleTable.h>
 #include <Script/LifeCycleFunc/MoveLeftRight.h> 
 #include <Script/LifeCycleFunc/Rotate.h> 
+#include <Script/LifeCycleFunc/BeginScene.h>
+#include <Script/LifeCycleFunc/LoadingScene.h>
 
 namespace Online::Script
 {
@@ -9,6 +11,8 @@ namespace Online::Script
         registry.fill(ScriptFunctionInfo{});
         Script::Register(Move::Information());
         Script::Register(Rotate::Information());
+        Script::Register(BeginScene::Information());
+        Script::Register(LoadingScene::Information());
         return true;
     }
 

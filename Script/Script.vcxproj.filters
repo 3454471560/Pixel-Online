@@ -33,6 +33,12 @@
     <ClInclude Include="LifeCycleFunc\Rotate.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="LifeCycleFunc\BeginScene.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LifeCycleFunc\LoadingScene.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LifeCycleTable.cpp">

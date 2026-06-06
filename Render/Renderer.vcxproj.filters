@@ -63,6 +63,9 @@
     <ClInclude Include="Command\LineDrawCommand.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Specific\RenderText.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Backend\Factory.cpp">

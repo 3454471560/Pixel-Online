@@ -140,6 +140,8 @@
     <ClInclude Include="Common\FuncTable.h" />
     <ClInclude Include="Common\ScriptFunctionID.h" />
     <ClInclude Include="Common\ScriptFunctionInfo.h" />
+    <ClInclude Include="LifeCycleFunc\BeginScene.h" />
+    <ClInclude Include="LifeCycleFunc\LoadingScene.h" />
     <ClInclude Include="LifeCycleFunc\MoveLeftRight.h" />
     <ClInclude Include="LifeCycleFunc\Rotate.h" />
     <ClInclude Include="LifeCycleTable.h" />

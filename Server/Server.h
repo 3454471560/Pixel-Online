@@ -50,10 +50,7 @@ namespace Online::Runtime
     private:
         bool Initialize();
         bool IsRunning() const;
-        void BeginFrame();
         void FixedUpdate();
-        void Update();
-        void LateUpdate();
         void EndFrame();
         void FrameSync();
         void Release();

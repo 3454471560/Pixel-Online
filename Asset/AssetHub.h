@@ -81,11 +81,56 @@ namespace Online::Asset
 
         bool CreateOrResizeRenderTarget(TextureID id, int width, int height);
         glm::ivec2 GetTextureSize(TextureID id) const;
+        size_t GetFontSize(FontID id) const;
         void InitOffScreen();
 
         bool SaveTextureToPNG(SDL_Texture* texture);
         bool SaveWindowScreenshot(const std::filesystem::path& path = "screenshot.png");
         float GetAsstetLoadProgress();
+
+        inline glm::ivec2 GetFontAtlasCoord(char32_t ch) const noexcept
+        {
+			FontID id = FontID::Ipix; 
+            auto fontIt = fontAtlasCoordMaps.find(id);
+            if (fontIt == fontAtlasCoordMaps.end())
+                return { -1, -1 };
+            auto& coordMap = fontIt->second;
+            auto charIt = coordMap.find(ch);
+            if (charIt != coordMap.end())
+                return charIt->second;
+            return { -1, -1 };
+        }
+        inline SDL_Rect GetFontAtlasSrcRect(FontID id, char32_t ch) const noexcept
+        {
+            auto fontIt = fontAtlasCoordMaps.find(id);
+            if (fontIt == fontAtlasCoordMaps.end())
+                return { 0, 0, 0, 0 };
+
+            auto& coordMap = fontIt->second;
+            auto charIt = coordMap.find(ch);
+            if (charIt == coordMap.end())
+                return { 0, 0, 0, 0 };
+
+            int fontSize = static_cast<int>(fontSizes[static_cast<size_t>(id)]);
+            return {
+                charIt->second.x * fontSize,
+                charIt->second.y * fontSize,
+                fontSize,
+                fontSize
+            };
+        }
+        inline int GetFontAtlasAdvance(FontID id, char32_t ch) const noexcept
+        {
+            auto fontIt = fontAtlasAdvanceMaps.find(id);
+            if (fontIt == fontAtlasAdvanceMaps.end())
+                return static_cast<int>(fontSizes[static_cast<size_t>(id)]);
+
+            auto& advanceMap = fontIt->second;
+            auto charIt = advanceMap.find(ch);
+            if (charIt != advanceMap.end()) return charIt->second;
+
+            return static_cast<int>(fontSizes[static_cast<size_t>(id)]);
+        }
     private:
         bool Initialize(const std::vector<Online::Config::AnimationInfo>& animationInfo,
             const std::vector<Online::TileEdit::TileMap>& tileMapInfo);
@@ -103,6 +148,7 @@ namespace Online::Asset
         void LoadBuiltinAssets();
         void LoadAnimationClipAssets(const std::vector<Online::Config::AnimationInfo>& animationInfo);
         void LoadTileMapAssets(const std::vector<Online::TileEdit::TileMap>& tileMapInfo);
+        void BuildFontAtlasTexture(FontID ID, TTF_Font* font);
 
         TextureLoadResult LoadTextureInternal(TextureID id, const std::filesystem::path& path);
         SoundLoadResult LoadSoundInternal(SoundID id, const std::filesystem::path& path);
@@ -134,8 +180,12 @@ namespace Online::Asset
         std::array<std::atomic<bool>, static_cast<uint8_t>(AnimationClipID::Count)> animReady{};
 
         std::array<glm::ivec2, static_cast<uint8_t>(TextureID::Count)> textureSizes{};
+        std::array<size_t, static_cast<uint8_t>(FontID::Count)> fontSizes{};
 
         std::vector<AnimationClip> animsPool;
+
+        std::unordered_map<FontID, std::unordered_map<char32_t, glm::ivec2>> fontAtlasCoordMaps;
+        std::unordered_map<FontID, std::unordered_map<char32_t, int>> fontAtlasAdvanceMaps;
 
         Online::Core::ThreadSafeQueue<LoadRequest>     requestQueue;
         Online::Core::ThreadSafeQueue<AssetLoadResult> resultQueue;

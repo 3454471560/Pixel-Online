@@ -76,7 +76,7 @@ namespace Online::Game
         void LoadScene(const std::string& sceneName);
         void SwitchSceneAfterLoadingAsync(const std::string& newSceneName);
         void SwitchSceneAsync(const std::string& newSceneName);
-        bool IsSceneLoading() const { return isAsyncLoading; }
+        bool IsSceneLoading() { return isAsyncLoading == true; }
         void DisplayPendingScene();
         bool IsPendingSceneReady() { return pendingScene != nullptr; }
     private:

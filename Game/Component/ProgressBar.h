@@ -24,6 +24,7 @@ namespace Online::Game
             ctx.Write("direction", static_cast<uint8_t>(ProgressDirection));
             ctx.Write("autoSyncDir", AutoSyncDirection);
             ctx.Write("forceFgTop", ForceForegroundOnTop);
+            ctx.Write("maxSpeed", MaxSpeed);
         }
 
         void Deserialize(const Online::Serialize::DeserializeContext& ctx) override
@@ -36,6 +37,7 @@ namespace Online::Game
             ProgressDirection = static_cast<Game::ProgressDirection>(dir);
             ctx.Read("autoSyncDir", AutoSyncDirection);
             ctx.Read("forceFgTop", ForceForegroundOnTop);
+            ctx.Read("maxSpeed", MaxSpeed);
         }
 
     public:
@@ -174,6 +176,16 @@ namespace Online::Game
             return !SmoothPaused && SmoothTime > 0.0001f && glm::abs(CurrentProgress - TargetProgress) > 0.001f;
         }
 
+        inline float GetMaxSpeed() const noexcept 
+        { 
+            return MaxSpeed;
+        }
+
+        inline void SetMaxSpeed(float speed) noexcept 
+        { 
+            MaxSpeed = speed > 0.0f ? speed : 0.0f; 
+        }
+
         inline ProgressDirection GetDirection() const noexcept 
         { 
             return ProgressDirection; 
@@ -308,6 +320,7 @@ namespace Online::Game
         float CurrentProgress = 0.01f;
         float SmoothTime = 0.15f;
         bool SmoothPaused = false;
+        float MaxSpeed = 0.0f;
 
         ProgressDirection ProgressDirection = ProgressDirection::LeftToRight;
         bool AutoSyncDirection = true;

@@ -9,6 +9,10 @@
 #include <Asset/Common/ID/FontID.h>
 #include <Asset/Common/ID/AnimationClipID.h>
 #include <SDL.h>
+#include <SDL_mixer.h>
+#include <SDL_ttf.h>
+#include <glm.hpp>
+#include <filesystem>
 
 #include <stdexcept>
 
@@ -34,21 +38,25 @@ namespace Online::Runtime
         {
             if (!OnSetRenderer)        throw std::runtime_error("FuncTable miss [Asset::SetRenderer]!");
             if (!OnSyncLoadedAssets)   throw std::runtime_error("FuncTable miss [Asset::SyncLoadedAssets]!");
-            if (!OnInitOffScreen)   throw std::runtime_error("FuncTable miss [Asset::OnInitOffScreen]!");
+            if (!OnInitOffScreen)      throw std::runtime_error("FuncTable miss [Asset::OnInitOffScreen]!");
             if (!OnSaveTextureToPNG)   throw std::runtime_error("FuncTable miss [Asset::OnSaveTextureToPNG]!");
-            if (!OnSaveScreenToPNG)   throw std::runtime_error("FuncTable miss [Asset::OnSaveScreenToPNG]!");
-            if (!OnIsTextureReady)   throw std::runtime_error("FuncTable miss [Asset::OnIsTextureReady]!");
-            if (!OnIsSoundReady)   throw std::runtime_error("FuncTable miss [Asset::OnIsAudioReady]!");
-            if (!OnIsMusicReady)   throw std::runtime_error("FuncTable miss [Asset::OnIsMusicReady]!");
-            if (!OnIsFontReady)   throw std::runtime_error("FuncTable miss [Asset::OnIsFontReady]!");
-            if (!OnIsAnimReady)   throw std::runtime_error("FuncTable miss [Asset::OnIsAnimReady]!");
-            if (!OnGetAsstetLoadProgress)   throw std::runtime_error("FuncTable miss [Asset::OnGetAsstetLoadProgress]!");
-            if (!GetTexture)   throw std::runtime_error("FuncTable miss [Asset::GetTexture]!");
-            if (!GetSound)   throw std::runtime_error("FuncTable miss [Asset::GetAudio]!");
-            if (!GetMusic)   throw std::runtime_error("FuncTable miss [Asset::GetMusic]!");
-            if (!GetFont)   throw std::runtime_error("FuncTable miss [Asset::GetFont]!");
-            if (!GetAnim)   throw std::runtime_error("FuncTable miss [Asset::GetAnim]!");
-            if (!GetTextureSize)   throw std::runtime_error("FuncTable miss [Asset::GetTextureSize]!");
+            if (!OnSaveScreenToPNG)    throw std::runtime_error("FuncTable miss [Asset::OnSaveScreenToPNG]!");
+            if (!OnIsTextureReady)     throw std::runtime_error("FuncTable miss [Asset::OnIsTextureReady]!");
+            if (!OnIsSoundReady)       throw std::runtime_error("FuncTable miss [Asset::OnIsSoundReady]!");
+            if (!OnIsMusicReady)       throw std::runtime_error("FuncTable miss [Asset::OnIsMusicReady]!");
+            if (!OnIsFontReady)        throw std::runtime_error("FuncTable miss [Asset::OnIsFontReady]!");
+            if (!OnIsAnimReady)        throw std::runtime_error("FuncTable miss [Asset::OnIsAnimReady]!");
+            if (!OnGetAssetLoadProgress) throw std::runtime_error("FuncTable miss [Asset::OnGetAssetLoadProgress]!");
+            if (!GetTexture)           throw std::runtime_error("FuncTable miss [Asset::GetTexture]!");
+            if (!GetSound)             throw std::runtime_error("FuncTable miss [Asset::GetSound]!");
+            if (!GetMusic)             throw std::runtime_error("FuncTable miss [Asset::GetMusic]!");
+            if (!GetFont)              throw std::runtime_error("FuncTable miss [Asset::GetFont]!");
+            if (!GetAnim)              throw std::runtime_error("FuncTable miss [Asset::GetAnim]!");
+            if (!GetTextureSize)       throw std::runtime_error("FuncTable miss [Asset::GetTextureSize]!");
+            if (!GetFontSize)          throw std::runtime_error("FuncTable miss [Asset::GetFontSize]!");
+            if (!OnGetFontAtlasCoord)  throw std::runtime_error("FuncTable miss [Asset::OnGetFontAtlasCoord]!");
+            if (!OnGetFontAtlasSrcRect) throw std::runtime_error("FuncTable miss [Asset::OnGetFontAtlasSrcRect]!");
+            if (!OnGetFontAtlasAdvance) throw std::runtime_error("FuncTable miss [Asset::OnGetFontAtlasAdvance]!");
 
             return true;
         }
@@ -65,13 +73,17 @@ namespace Online::Runtime
             OnIsMusicReady = nullptr;
             OnIsFontReady = nullptr;
             OnIsAnimReady = nullptr;
-			OnGetAsstetLoadProgress = nullptr;
+            OnGetAssetLoadProgress = nullptr;
             GetTexture = nullptr;
             GetSound = nullptr;
             GetMusic = nullptr;
             GetFont = nullptr;
             GetAnim = nullptr;
             GetTextureSize = nullptr;
+            GetFontSize = nullptr;
+            OnGetFontAtlasCoord = nullptr;
+            OnGetFontAtlasSrcRect = nullptr;
+            OnGetFontAtlasAdvance = nullptr;
         }
 
     public:
@@ -93,66 +105,91 @@ namespace Online::Runtime
         void InvokeOnSaveTextureToPNG(SDL_Texture* texture) const
         {
             OnSaveTextureToPNG(texture);
-		}
+        }
 
         void InvokeOnSaveScreenToPNG(const std::filesystem::path& path) const
         {
             OnSaveScreenToPNG(path);
-		}
+        }
 
         bool InvokeOnIsTextureReady(Online::Asset::TextureID id) const
         {
             return OnIsTextureReady(id);
-		}
+        }
 
-        bool InvokeOnIsAudioReady(Online::Asset::SoundID id) const
+        bool InvokeOnIsSoundReady(Online::Asset::SoundID id) const
         {
             return OnIsSoundReady(id);
-		}
+        }
+
+        bool InvokeOnIsMusicReady(Online::Asset::MusicID id) const
+        {
+            return OnIsMusicReady(id);
+        }
 
         bool InvokeOnIsFontReady(Online::Asset::FontID id) const
         {
             return OnIsFontReady(id);
-		}
+        }
 
         bool InvokeOnIsAnimReady(Online::Asset::AnimationClipID id) const
         {
             return OnIsAnimReady(id);
-		}
+        }
 
         float InvokeOnGetAssetLoadProgress() const
         {
-            return OnGetAsstetLoadProgress();
-		}
+            return OnGetAssetLoadProgress();
+        }
 
-        SDL_Texture* InvokeOnGetTexture(Online::Asset::TextureID id)
+        SDL_Texture* InvokeGetTexture(Online::Asset::TextureID id)
         {
             return GetTexture(id);
         }
 
-        Mix_Chunk* InvokeOnGetSound(Online::Asset::SoundID id)
+        Mix_Chunk* InvokeGetSound(Online::Asset::SoundID id)
         {
             return GetSound(id);
         }
 
-        Mix_Music* InvokeOnGetMusic(Online::Asset::MusicID id)
+        Mix_Music* InvokeGetMusic(Online::Asset::MusicID id)
         {
             return GetMusic(id);
         }
 
-        TTF_Font* InvokeOnGetFont(Online::Asset::FontID id)
+        TTF_Font* InvokeGetFont(Online::Asset::FontID id)
         {
             return GetFont(id);
         }
 
-        Online::Asset::AnimationClip* InvokeOnGetAnim(Online::Asset::AnimationClipID id)
+        Online::Asset::AnimationClip* InvokeGetAnim(Online::Asset::AnimationClipID id)
         {
             return GetAnim(id);
         }
 
-        glm::ivec2 InvokeOnGetTextureSize(Online::Asset::TextureID id)
+        glm::ivec2 InvokeGetTextureSize(Online::Asset::TextureID id)
         {
             return GetTextureSize(id);
+        }
+
+        int InvokeGetFontSize(Online::Asset::FontID id)
+        {
+            return GetFontSize(id);
+        }
+
+        glm::ivec2 InvokeOnGetFontAtlasCoord(char32_t codepoint) const
+        {
+            return OnGetFontAtlasCoord(codepoint);
+        }
+
+        SDL_Rect InvokeOnGetFontAtlasSrcRect(Online::Asset::FontID id, char32_t codepoint) const
+        {
+            return OnGetFontAtlasSrcRect(id, codepoint);
+        }
+
+        int InvokeOnGetFontAtlasAdvance(Online::Asset::FontID id, char32_t codepoint) const
+        {
+            return OnGetFontAtlasAdvance(id, codepoint);
         }
 
     private:
@@ -166,13 +203,17 @@ namespace Online::Runtime
         bool(*OnIsMusicReady)(Online::Asset::MusicID) = nullptr;
         bool(*OnIsFontReady)(Online::Asset::FontID) = nullptr;
         bool(*OnIsAnimReady)(Online::Asset::AnimationClipID) = nullptr;
-		float(*OnGetAsstetLoadProgress)() = nullptr;
+        float(*OnGetAssetLoadProgress)() = nullptr;
         SDL_Texture* (*GetTexture)(Online::Asset::TextureID) = nullptr;
         Mix_Chunk* (*GetSound)(Online::Asset::SoundID) = nullptr;
         Mix_Music* (*GetMusic)(Online::Asset::MusicID) = nullptr;
         TTF_Font* (*GetFont)(Online::Asset::FontID) = nullptr;
         Online::Asset::AnimationClip* (*GetAnim)(Online::Asset::AnimationClipID) = nullptr;
         glm::ivec2(*GetTextureSize)(Online::Asset::TextureID) = nullptr;
+        int (*GetFontSize)(Online::Asset::FontID) = nullptr;
+        glm::ivec2(*OnGetFontAtlasCoord)(char32_t) = nullptr;
+        SDL_Rect(*OnGetFontAtlasSrcRect)(Online::Asset::FontID, char32_t) = nullptr;
+        int (*OnGetFontAtlasAdvance)(Asset::FontID id, char32_t ch) = nullptr;
     };
 }
 
@@ -180,52 +221,66 @@ namespace Online::Asset
 {
     inline void SetRenderer(SDL_Renderer* renderer)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSetRenderer(renderer);
+        Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSetRenderer(renderer);
     }
 
     inline void SyncLoadedAssets()
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSyncLoadedAssets();
+        Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSyncLoadedAssets();
     }
 
     inline void InitOffScreen()
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnInitOffScreen();
+        Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnInitOffScreen();
     }
 
     inline SDL_Texture* GetTexture(Online::Asset::TextureID id)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetTexture(id);
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetTexture(id);
+    }
+
+    inline SDL_Texture* GetTexture(Online::Asset::FontID id)
+    {
+        Asset::TextureID ID;
+        switch (id)
+        {
+        case Online::Asset::FontID::Ipix:
+			ID = Online::Asset::TextureID::Tex_FontIpixAtlas;
+            break;
+        default:
+            ID = Online::Asset::TextureID::Tex_FontIpixAtlas;
+        }
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetTexture(ID);
     }
 
     inline Mix_Chunk* GetSound(Online::Asset::SoundID id)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetSound(id);
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetSound(id);
     }
 
     inline Mix_Music* GetMusic(Online::Asset::MusicID id)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetMusic(id);
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetMusic(id);
     }
 
     inline TTF_Font* GetFont(Online::Asset::FontID id)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetFont(id);
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetFont(id);
     }
 
     inline Online::Asset::AnimationClip* GetAnim(Online::Asset::AnimationClipID id)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetAnim(id);
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetAnim(id);
     }
 
     inline void SaveTextureToPNG(SDL_Texture* texture)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSaveTextureToPNG(texture);
-	}
+        Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSaveTextureToPNG(texture);
+    }
 
     inline void SaveScreenToPNG(const std::filesystem::path& path = "screenshot")
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSaveScreenToPNG(path);
+        Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnSaveScreenToPNG(path);
     }
 
     inline bool IsTextureReady(Online::Asset::TextureID id)
@@ -235,7 +290,12 @@ namespace Online::Asset
 
     inline bool IsAudioReady(Online::Asset::SoundID id)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnIsAudioReady(id);
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnIsSoundReady(id);
+    }
+
+    inline bool IsMusicReady(Online::Asset::MusicID id)
+    {
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnIsMusicReady(id);
     }
 
     inline bool IsFontReady(Online::Asset::FontID id)
@@ -250,11 +310,31 @@ namespace Online::Asset
 
     inline glm::ivec2 GetTextureSize(Online::Asset::TextureID id)
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetTextureSize(id);
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetTextureSize(id);
     }
 
     inline float GetAssetLoadProgress()
     {
         return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetAssetLoadProgress();
-	}
+    }
+
+    inline int GetFontSize(Online::Asset::FontID id)
+    {
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeGetFontSize(id);
+    }
+
+    //inline glm::ivec2 GetFontAtlasCoord(char32_t codepoint)
+    //{
+    //    return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetFontAtlasCoord(codepoint);
+    //}
+
+    inline SDL_Rect GetFontAtlasSrcRect(Online::Asset::FontID id, char32_t codepoint)
+    {
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetFontAtlasSrcRect(id, codepoint);
+    }
+
+    inline int GetFontAtlasAdvance(Online::Asset::FontID id, char32_t codepoint)
+    {
+        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<AssetHub>().InvokeOnGetFontAtlasAdvance(id, codepoint);
+    }
 }

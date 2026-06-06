@@ -24,7 +24,7 @@ namespace Online::Script
         }
         static void MoveLeftRight_Update(Game::GameObject* go, float dt)
         {
-            auto* data = go->GetScriptData<MoveData>(ScriptFunctionID::MoveLeftRight);
+            auto* data = go->GetScriptData<MoveData>(ID);
             auto* trans = go->GetTransform();
 			auto* rigi = go->GetComponent<Game::Rigidbody>();
             auto* anco = go->GetComponent<Game::AnimatorController>();

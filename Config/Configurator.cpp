@@ -1,6 +1,9 @@
-#include<Config/Configurator.h>
+ï»¿#include<Config/Configurator.h>
 #include<Core/Utils/File.h>
+#include<Core/String/String.h>
 #include<Log/Common/FuncTable.h>
+
+#include <unordered_set>
 
 bool Online::Config::Configurator::Initialize()
 {
@@ -16,15 +19,28 @@ void Online::Config::Configurator::Release()
 bool Online::Config::Configurator::Import()
 {
 	std::filesystem::path path = std::filesystem::path(Online::Core::GetExeDir()) / configFileName;
-	if (!std::filesystem::exists(path)) { throw std::runtime_error("È±Ê§¿Í»§¶ËÅäÖÃÎÄ¼ş"); }
-	if (!configInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("¿Í»§¶ËÅäÖÃÎÄ¼ş¼ÓÔØÊ§°Ü"); }
+	if (!std::filesystem::exists(path)) { throw std::runtime_error("ç¼ºå¤±å®¢æˆ·ç«¯é…ç½®æ–‡ä»¶"); }
+	if (!configInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("å®¢æˆ·ç«¯é…ç½®æ–‡ä»¶åŠ è½½å¤±è´¥"); }
 	path.clear();path = std::filesystem::path(Online::Core::GetExeDir()) / animationsFileName;
-	if (!animationsInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("È±Ê§¶¯»­ÅäÖÃÎÄ¼ş"); }
+	if (!animationsInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("ç¼ºå¤±åŠ¨ç”»é…ç½®æ–‡ä»¶"); }
 	tileMapsInfo.tileMaps.resize(4);
 	for (int i = 0; i < 4; ++i) {
 		std::filesystem::path map_path = std::filesystem::path(Online::Core::GetExeDir()) / Maps[i];
-		if (!std::filesystem::exists(map_path)) { throw std::runtime_error("È±Ê§µØÍ¼ÅäÖÃÎÄ¼ş ");}
-		tileMapsInfo.tileMaps[i].deserialize(map_path.string());
+		if (!std::filesystem::exists(map_path)) { throw std::runtime_error("ç¼ºå¤±åœ°å›¾é…ç½®æ–‡ä»¶ ");}
+		tileMapsInfo.tileMaps[i].deserialize(map_path.string());}
+
+	path = std::filesystem::path(Online::Core::GetExeDir()) / charsetFileName;
+	if (!std::filesystem::exists(path)) { throw std::runtime_error("ç¼ºå¤±å­—ç¬¦é›†é…ç½®æ–‡ä»¶ " + path.string()); }
+	std::string fileContent;Online::Core::ReadFileToString(path, fileContent);
+	if (!fileContent.empty()) {
+		charset = Core::Utf8ToUtf32(fileContent);
+		std::u32string uniqueChars;
+		std::unordered_set<char32_t> seen;
+		for (char32_t ch : charset) {
+			if (seen.insert(ch).second)
+				uniqueChars.push_back(ch);}
+		charset = std::move(uniqueChars);
+		BuildCharLayout();
 	}
 	return true;
 }
@@ -32,6 +48,22 @@ bool Online::Config::Configurator::Export()
 {
 	std::filesystem::path path = std::filesystem::path(Online::Core::GetExeDir()) / configFileName;	
 	return configInfo.SerializeToFile(path, Online::Serialize::API::Json);
+}
+
+void Online::Config::Configurator::BuildCharLayout()
+{
+	charLayouts.clear();
+
+	if (charset.empty())
+		return;
+
+	charLayouts.reserve(charset.size());
+	for (char32_t ch : charset)
+	{
+		CharLayout layout;
+		layout.character = ch;
+		charLayouts.push_back(layout);
+	}
 }
 
 void Online::Config::Configurator::ConfigInfo::Serialize(Online::Serialize::SerializeContext& context) const

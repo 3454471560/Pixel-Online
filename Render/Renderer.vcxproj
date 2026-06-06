@@ -158,6 +158,7 @@
     <ClInclude Include="RenderPipeline.h" />
     <ClInclude Include="Specific\RenderItem.h" />
     <ClInclude Include="Specific\RenderPass.h" />
+    <ClInclude Include="Specific\RenderText.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Backend\Factory.cpp" />

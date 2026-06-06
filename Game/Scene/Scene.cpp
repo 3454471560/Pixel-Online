@@ -818,59 +818,60 @@ namespace Online::Game
             if (!bg || !fg)
                 continue;
 
+            // 强制背景脱离进度模式
             if (bg->IsInProgressMode())
                 bg->DisableProgressMode();
 
+            // 强制前景置顶渲染顺序同步
             if (pb.IsForceForegroundOnTop() && pb.GetNeedSyncRenderOrder())
             {
                 pb.SyncRenderOrder(bg, fg);
                 pb.SetNeedSyncRenderOrder(false);
             }
 
+            // 自动方向同步
             if (pb.IsAutoSyncDirection() && pb.GetNeedSyncDirection())
             {
                 pb.SyncDirectionToSprite(fg);
                 pb.SetNeedSyncDirection(false);
             }
 
-            if (Input::GetKeyDown(Input::KeyCode::N))
-            {
-                float val = pb.GetTargetProgress();
-                val = glm::clamp(val - 0.01f, 0.0f, 1.0f);
-                pb.SetProgress(val);
-            }
-            if (Input::GetKeyDown(Input::KeyCode::M))
-            {
-                float val = pb.GetTargetProgress();
-                val = glm::clamp(val + 0.01f, 0.0f, 1.0f);
-                pb.SetProgress(val);
-            }
-
             bool changed = false;
             float curr = pb.GetCurrentProgress();
             float targ = pb.GetTargetProgress();
 
+            // 1. 基于平滑时间计算目标值（原始平滑算法）
+            float next;
             if (!pb.IsSmoothPaused() && pb.GetSmoothTime() > 0.0001f)
             {
                 float smoothTime = pb.GetSmoothTime();
                 float factor = 1.0f - glm::exp(-deltaTime / smoothTime);
-                float next = glm::mix(curr, targ, factor);
-
-                if (glm::abs(next - curr) > 0.0001f)
-                {
-                    pb.SetCurrentProgress(next);
-                    changed = true;
-                }
+                next = glm::mix(curr, targ, factor);
             }
             else
             {
-                if (glm::abs(curr - targ) > 0.0001f)
-                {
-                    pb.SetCurrentProgress(targ);
-                    changed = true;
-                }
+                next = targ;
             }
 
+            // 2. 应用最大增长速度限制
+            float maxDelta = pb.GetMaxSpeed() * deltaTime;
+            if (maxDelta > 0.0f)
+            {
+                float delta = next - curr;
+                if (delta > maxDelta)
+                    next = curr + maxDelta;
+                else if (delta < -maxDelta)
+                    next = curr - maxDelta;
+            }
+
+            // 3. 应用变化到当前进度
+            if (glm::abs(next - curr) > 0.0001f)
+            {
+                pb.SetCurrentProgress(next);
+                changed = true;
+            }
+
+            // 4. 同步到前景精灵并触发回调
             if (changed)
             {
                 fg->SetProgress(pb.GetCurrentProgress());
@@ -881,6 +882,8 @@ namespace Online::Game
 
                 pb.CheckAndTriggerComplete();
             }
+
+            // 5. 处理指示器动画（原逻辑完整保留）
             if (pb.HasIndicatorAnimation())
             {
                 Transform* indicatorTransform = pb.GetIndicatorTransform();
@@ -893,8 +896,8 @@ namespace Online::Game
                         ProgressDirection dir = pb.GetDirection();
                         glm::vec2 worldPos = progressTransform->GetWorldPosition();
                         glm::vec2 renderOffset = progressSprite->GetRenderOffset();
-                        float width = progressSprite->GetTextureSize().x;  
-                        float height = progressSprite->GetTextureSize().y; 
+                        float width = progressSprite->GetTextureSize().x;
+                        float height = progressSprite->GetTextureSize().y;
                         float x, y;
 
                         switch (dir)

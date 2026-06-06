@@ -67,6 +67,11 @@ namespace Online::Asset
         Tex_TileMap4,
 #pragma endregion
 
+#pragma region Font
+        Tex_FontIpixAtlas,
+        Tex_FontDengAtlas,
+#pragma endregion
+
 #pragma region Count
 		Count
 #pragma endregion
@@ -163,6 +168,9 @@ namespace Online::Asset
             "Tex_TileMap2",
             "Tex_TileMap3",
             "Tex_TileMap4",
+            // Font
+            "Tex_FontIpixAtlas",
+            "Tex_FontDengAtlas"
         };
 
         const size_t idx = static_cast<size_t>(id);

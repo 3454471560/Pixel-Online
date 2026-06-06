@@ -44,6 +44,7 @@
     <ClInclude Include="Component\Rigidbody.h" />
     <ClInclude Include="Component\Sprite.h" />
     <ClInclude Include="Component\Tag.h" />
+    <ClInclude Include="Component\Text.h" />
     <ClInclude Include="Component\TileMap.h" />
     <ClInclude Include="Component\Transform.h" />
     <ClInclude Include="Entity\GameObject.h" />

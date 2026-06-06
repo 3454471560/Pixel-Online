@@ -5,6 +5,7 @@
 #include<Render/Common/API.h>
 #include<TileEdit/Common/TileMap.h>
 #include<Config/Common/TileMapID.h>
+#include<Config/Common/Info/CharLayout.h>
 
 #include<stdexcept>
 
@@ -30,6 +31,7 @@ namespace Online::Runtime
 			if (!OnGetRenderAPI) { throw std::runtime_error("FuncTable miss [Config::GetRenderAPI] Function!"); }
 			if (!OnGetEnableVSync) { throw std::runtime_error("FuncTable miss [Config::GetEnableVSync] Function!"); }
 			if (!GetTileMap) { throw std::runtime_error("FuncTable miss [Config::GetTileMap] Function!"); }
+			if (!GetCharLayouts) { throw std::runtime_error("FuncTable miss [Config::GetCharLayouts] Function!"); }
 			return true;
 		}
 		inline void UnRegister() noexcept
@@ -38,6 +40,7 @@ namespace Online::Runtime
 			OnGetMaxFixupdataExecuteTimes = nullptr;
 			OnGetEnableVSync = nullptr;
 			GetTileMap = nullptr;
+			GetCharLayouts = nullptr;
 		}
 
 	public:
@@ -58,11 +61,16 @@ namespace Online::Runtime
 			return GetTileMap(ID);
 		}
 
+		inline const std::vector<Config::CharLayout>& InvokeGetCharLayouts() const noexcept
+		{
+			return GetCharLayouts();
+		}
 	private:
 		Online::Render::API(*OnGetRenderAPI)() noexcept = nullptr;
 		size_t(*OnGetMaxFixupdataExecuteTimes)() noexcept = nullptr;
 		bool(*OnGetEnableVSync)() noexcept = nullptr;
 		const Online::TileEdit::TileMap& (*GetTileMap)(Online::Config::TileMapID) noexcept = nullptr;
+		const std::vector<Config::CharLayout>& (*GetCharLayouts)() noexcept = nullptr;
 	};
 }
 
@@ -83,5 +91,9 @@ namespace Online::Config
 	inline const Online::TileEdit::TileMap& GetTileMap(Online::Config::TileMapID ID) noexcept
 	{
 		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Config::Configurator>().InvokeGetTileMap(ID);
+	}
+	inline const std::vector<Config::CharLayout>& GetCharLayouts() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Config::Configurator>().InvokeGetCharLayouts();
 	}
 }

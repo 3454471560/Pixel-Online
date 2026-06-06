@@ -27,6 +27,9 @@
     <ClInclude Include="Common\TileMapID.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Info\CharLayout.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Configurator.cpp">

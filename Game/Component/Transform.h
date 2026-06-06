@@ -87,6 +87,18 @@ namespace Online::Game
             return s;
         }
 
+        inline float GetWorldScaleAverage() const
+        {
+            const glm::mat4& worldMat = GetWorldMatrix();
+            glm::vec2 s = glm::vec2(glm::length(worldMat[0]), glm::length(worldMat[1]));
+
+            const float multiplier = 10000.0f;
+            s.x = std::round(s.x * multiplier) / multiplier;
+            s.y = std::round(s.y * multiplier) / multiplier;
+
+            return (s.x + s.y) / 2;
+        }
+
         inline const glm::mat4& GetWorldMatrix() const noexcept
         {
             if (worldDirty)

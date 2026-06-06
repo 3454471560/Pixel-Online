@@ -9,6 +9,7 @@
 #include<TileEdit/Common/TileMap.h>
 #include<Config/Common/Info/AnimationInfo.h>
 #include<Config/Common/TileMapID.h>
+#include<Config/Common/Info/CharLayout.h>
 
 #include<array>
 #include<string>
@@ -148,15 +149,26 @@ namespace Online::Config
 			}
 			return nullptr;
 		}
-
+		inline const std::vector<CharLayout>& GetCharLayouts() const noexcept
+		{
+			return charLayouts;
+		}
 	private:
 		Online::Config::Configurator::ConfigInfo configInfo;
 		Online::Config::Configurator::AnimationsInfo animationsInfo;
 		Online::Config::Configurator::MapInfo tileMapsInfo;
 
+		std::u32string charset;
+		int charGridCols = 0;
+		int charGridRows = 0;
+		std::vector<Config::CharLayout> charLayouts;
+
+		void BuildCharLayout();
+
 	private:
 		inline static constexpr const char* configFileName = "Client.json";
 		inline static constexpr const char* animationsFileName = "animations.json";
+		inline static constexpr const char* charsetFileName = "charset.txt";
 		inline static constexpr const char* Maps[] = {
 			"Map_01.csv",
 			"Map_02.csv",

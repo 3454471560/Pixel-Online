@@ -82,8 +82,6 @@ namespace Online::Net::Server
         void CloseConnection(int connectionId);
 
     private:
-        std::atomic<bool> isRunning = false;
-        Online::Core::Thread::Identifier netThread;
         uint16_t port = 7777;
 
         SDLNet_SocketSet readSet = nullptr;

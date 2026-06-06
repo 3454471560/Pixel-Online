@@ -317,6 +317,12 @@ namespace Online::Render
 
             renderPacket.PushLineCommandToPass(cmd);
         }
+        inline void SubmitText(Asset::FontID inFontId, std::string inText, glm::vec2 inPos, float scale, Online::Core::Color inColor, float inLimitWidth)
+        {
+            //TextDrawCommand cmd(inFontId, inText, inPos, scale, inColor, inLimitWidth);
+
+            //renderPacket.PushTextCommandToPass(cmd);
+        }
         inline void EndPass()
         {
             renderPacket.CompilePass(currentPassConfig, currentProcessConfig);

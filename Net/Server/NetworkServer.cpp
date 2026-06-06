@@ -45,19 +45,11 @@ bool Online::Net::Server::NetworkServer::Initialize()
         SDLNet_Quit();
         throw std::runtime_error("SDLNet_TCP_AddSocket failed for server: " + std::string(SDLNet_GetError()));
     }
-
-    isRunning.store(true, std::memory_order_release);
-    netThread = Online::Thread::RegisterThread("NetThread", BootstrapNetThread, this, nullptr);
-    if (netThread == Core::Thread::Identifier::Invalid) { throw std::runtime_error("Failed to register network thread"); }
-
     return true;
 }
 
 void Online::Net::Server::NetworkServer::Release()
 {
-    isRunning.store(false, std::memory_order_release);
-    Thread::UnregisterThread(netThread);
-
     {
         std::lock_guard lock(connMutex);
         for (auto& kv : connections)
@@ -290,93 +282,90 @@ void Online::Net::Server::NetworkServer::Tick()
 
 void Online::Net::Server::NetworkServer::NetThread()
 {
-    while (isRunning.load(std::memory_order_acquire))
+    int readReady = SDLNet_CheckSockets(readSet, 10);
+    if (readReady < 0) return;
+
+    int writeReady = SDLNet_CheckSockets(writeSet, 0);
+    if (writeReady < 0) writeReady = 0;
+
+    std::lock_guard lock(connMutex);
+
+    if (SDLNet_SocketReady(serverSocket))
     {
-        int readReady = SDLNet_CheckSockets(readSet, 10);
-        if (readReady < 0) continue;
+        AcceptNewConnection();
+    }
 
-        int writeReady = SDLNet_CheckSockets(writeSet, 0);
-        if (writeReady < 0) writeReady = 0;
-
-        std::lock_guard lock(connMutex);
-
-        if (SDLNet_SocketReady(serverSocket))
+    if (readReady > 0)
+    {
+        for (auto it = connections.begin(); it != connections.end(); )
         {
-            AcceptNewConnection();
-        }
+            Connection* conn = it->second;
+            bool erase = false;
 
-        if (readReady > 0)
-        {
-            for (auto it = connections.begin(); it != connections.end(); )
+            if (SDLNet_SocketReady(conn->socket))
             {
-                Connection* conn = it->second;
-                bool erase = false;
-
-                if (SDLNet_SocketReady(conn->socket))
+                if (!TryReceiveNonBlocking(conn))
                 {
-                    if (!TryReceiveNonBlocking(conn))
+                    ReleaseConnectionResources(conn);
+                    erase = true;
+                }
+                else if (!ParseMessages(conn))
+                {
+                    ReleaseConnectionResources(conn);
+                    erase = true;
+                }
+            }
+
+            if (erase)
+                it = connections.erase(it);
+            else
+                ++it;
+        }
+    }
+
+    if (writeReady > 0)
+    {
+        for (auto it = connections.begin(); it != connections.end(); )
+        {
+            Connection* conn = it->second;
+            bool erase = false;
+
+            if (conn->inWriteSet && SDLNet_SocketReady(conn->socket))
+            {
+                const auto& packet = conn->sendQueue.front();
+                const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(packet.data()) + conn->sendOffset;
+                int remaining = static_cast<int>(packet.size() - conn->sendOffset);
+
+                int sent = SDLNet_TCP_Send(conn->socket, dataPtr, remaining);
+
+                if (sent > 0)
+                {
+                    conn->sendOffset += sent;
+                    if (conn->sendOffset == packet.size())
                     {
-                        ReleaseConnectionResources(conn);
-                        erase = true;
+                        conn->sendQueue.pop();
+                        conn->sendOffset = 0;
                     }
-                    else if (!ParseMessages(conn))
+                    conn->lastHeartbeatMs = Online::Core::CurrentMs();
+
+                    if (conn->sendQueue.empty())
                     {
-                        ReleaseConnectionResources(conn);
-                        erase = true;
+                        SDLNet_TCP_DelSocket(writeSet, conn->socket);
+                        conn->inWriteSet = false;
                     }
                 }
-
-                if (erase)
-                    it = connections.erase(it);
-                else
-                    ++it;
-            }
-        }
-
-        if (writeReady > 0)
-        {
-            for (auto it = connections.begin(); it != connections.end(); )
-            {
-                Connection* conn = it->second;
-                bool erase = false;
-
-                if (conn->inWriteSet && SDLNet_SocketReady(conn->socket))
+                else if (sent < 0 || sent == 0)
                 {
-                    const auto& packet = conn->sendQueue.front();
-                    const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(packet.data()) + conn->sendOffset;
-                    int remaining = static_cast<int>(packet.size() - conn->sendOffset);
-
-                    int sent = SDLNet_TCP_Send(conn->socket, dataPtr, remaining);
-
-                    if (sent > 0)
-                    {
-                        conn->sendOffset += sent;
-                        if (conn->sendOffset == packet.size())
-                        {
-                            conn->sendQueue.pop();
-                            conn->sendOffset = 0;
-                        }
-                        conn->lastHeartbeatMs = Online::Core::CurrentMs();
-
-                        if (conn->sendQueue.empty())
-                        {
-                            SDLNet_TCP_DelSocket(writeSet, conn->socket);
-                            conn->inWriteSet = false;
-                        }
-                    }
-                    else if (sent < 0 || sent == 0)
-                    {
-                        Online::Log::Error("Send failed/closed for client " + std::to_string(conn->id));
-                        ReleaseConnectionResources(conn);
-                        erase = true;
-                    }
+                    Online::Log::Error("Send failed/closed for client " + std::to_string(conn->id));
+                    ReleaseConnectionResources(conn);
+                    erase = true;
                 }
-
-                if (erase)
-                    it = connections.erase(it);
-                else
-                    ++it;
             }
+
+            if (erase)
+                it = connections.erase(it);
+            else
+                ++it;
         }
     }
 }
