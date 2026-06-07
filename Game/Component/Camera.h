@@ -140,6 +140,14 @@ namespace Online::Game
         {
 			cameraState.Zoom = Zoom;
         }
+        inline void SetIsWorld(bool flag)
+        {
+			cameraState.IsWorld = flag;
+        }
+        inline void SetClearColor(Core::Color color)
+        {
+            renderTarget.ClearColor = color;
+        }
     public:
         Online::Core::CameraState cameraState;
         Online::Core::StateFlags<Online::Render::RenderLayer> cullingMask =

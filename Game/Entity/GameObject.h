@@ -345,6 +345,10 @@ namespace Online::Game
             return Online::Game::GetGameObject(Entity) == this;
         }
 
+        inline void SetLayer(Render::RenderLayer layer) noexcept { LayerMask = layer; }
+
+        inline Core::StateFlags<Render::RenderLayer> GetLayerMask() const noexcept { return LayerMask; }
+
     public:
         template<typename T, typename... Args>
         T& AddComponent(Args&&... args)
@@ -425,6 +429,7 @@ namespace Online::Game
 
     private:
         entt::entity Entity = entt::null;
+        Core::StateFlags<Render::RenderLayer> LayerMask = Render::RenderLayer::Default;
         bool ActiveSelf = true;
         bool ActiveInHierarchy = true;
 

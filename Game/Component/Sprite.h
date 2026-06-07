@@ -26,7 +26,6 @@ namespace Online::Game
         void Serialize(Online::Serialize::SerializeContext& ctx) const override
         {
             ctx.Write("texID", static_cast<int>(TextureID));
-            ctx.Write("layer", static_cast<uint32_t>(LayerMask.GetEnum()));
             ctx.Write("queue", static_cast<uint16_t>(RenderQueueType));
             ctx.Write("drawOrder", DrawOrder);
             ctx.Write("depth", Depth);
@@ -57,9 +56,6 @@ namespace Online::Game
             ctx.Read("texID", tex);
             TextureID = static_cast<Asset::TextureID>(tex);
 
-            uint32_t layer = 0;
-            ctx.Read("layer", layer);
-            LayerMask = static_cast<Render::RenderLayer>(layer);
 
             uint16_t queue = 0;
             ctx.Read("queue", queue);
@@ -122,7 +118,6 @@ namespace Online::Game
 
     public:
         inline Asset::TextureID GetTexture() const noexcept { return TextureID; }
-        inline Core::StateFlags<Render::RenderLayer> GetLayerMask() const noexcept { return LayerMask; }
         inline Render::RenderQueue GetRenderQueue() const noexcept { return RenderQueueType; }
         inline uint8_t GetDrawOrder() const noexcept { return DrawOrder; }
         inline uint8_t GetDepth() const noexcept { return Depth; }
@@ -196,7 +191,6 @@ namespace Online::Game
             if (SrcRectMode != SrcRectMode::Progress && !UseOverrideSize)
                 OverrideSize = BaseSize;
         }
-        inline void SetLayer(Render::RenderLayer layer) noexcept { LayerMask = layer; }
         inline void SetRenderQueue(Render::RenderQueue queue) noexcept { RenderQueueType = queue; }
         inline void SetDrawOrder(uint8_t order) noexcept { DrawOrder = order; }
         inline void SetDepth(uint8_t depth) noexcept { Depth = depth; }
@@ -406,7 +400,6 @@ namespace Online::Game
         }
     private:
         Asset::TextureID TextureID = Asset::TextureID::Tex_Default;
-        Core::StateFlags<Render::RenderLayer> LayerMask = Render::RenderLayer::Default;
         Render::RenderQueue RenderQueueType = Render::RenderQueue::World;
         uint8_t DrawOrder = 0;
         uint8_t Depth = 0;

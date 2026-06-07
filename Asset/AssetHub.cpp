@@ -34,7 +34,8 @@ namespace Online::Asset
         { TextureID::Tex_SilverHat_Strong_Attack, "Resource/Player/SilverHat/STRONG_ATTACK.png" },
         { TextureID::Tex_SilverHat_Strong_Attack_Prepare, "Resource/Player/SilverHat/STRONG_ATTACK_PREPARE.png" },
         { TextureID::Tex_SilverHat_Throw,       "Resource/Player/SilverHat/THROW.png" },
-        { TextureID::Tex_SilverHat_Blade_Effect,"Resource/Effect/merged_image.png" }
+        { TextureID::Tex_SilverHat_Blade_Effect,"Resource/Effect/merged_image.png" },
+        { TextureID::Tex_TextCursor,            "Resource/Cursor/textcursor.png" }
     };
 
     const std::unordered_map<SoundID, std::filesystem::path> AssetHub::BuiltinSoundPaths =

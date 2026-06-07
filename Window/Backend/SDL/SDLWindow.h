@@ -61,15 +61,29 @@ namespace Online::Window
 
 		void EmitKey(int scancode, int action, int mods) const;
 		void EmitMouseButton(uint8_t button, int action, int mods) const;
+		void EmitTextEditing(const char* text, int start, int length);
 
 		void EmitWindowFocusGained();
 		void EmitWindowFocusLost();
 		void EmitMouseEnterWindow();
 		void EmitMouseLeaveWindow();
 		void EmitTextInput(const char* text);
+
+		void OnTextInputStart(const Online::Event::Event& event);
+		void OnTextInputStop(const Online::Event::Event& event);
+		void OnSetTextInputRect(const Online::Event::Event& event);
+
+		static void OnTextInputStartThunk(void* listener, const Online::Event::Event& event);
+		static void OnTextInputStopThunk(void* listener, const Online::Event::Event& event);
+		static void OnSetTextInputRectThunk(void* listener, const Online::Event::Event& event);
+
 	private:
 		SDL_Window* window = nullptr;
 		mutable bool shouldClose = false;
 		std::vector<std::string> dropFilesTemp;
+
+		Online::Event::EventToken textInputStartToken;
+		Online::Event::EventToken textInputStopToken;
+		Online::Event::EventToken textInputRectToken;
 	};
 }

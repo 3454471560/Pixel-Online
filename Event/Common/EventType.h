@@ -16,6 +16,10 @@ namespace Online::Event
         MouseEnterWindow,
         MouseLeaveWindow,
         TextInput,
+        TextInputStart,
+        TextInputStop,
+        TextEditing,
+        SetTextInputRect,
 
         // Input
         MouseCurrsorMove,

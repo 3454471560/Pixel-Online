@@ -43,6 +43,11 @@ namespace Online::Runtime
 			if (!OnIsSceneLoading) { throw std::runtime_error("Delegates miss [GameWorld::IsSceneLoading] Function!"); }
 			if (!OnDisplayPendingScene) { throw std::runtime_error("Delegates miss [GameWorld::DisplayPendingScene] Function!"); }
 			if (!OnIsPendingSceneReady) { throw std::runtime_error("Delegates miss [GameWorld::IsPendingSceneReady] Function!"); }
+			if (!OnFindGameObjectByName) { throw std::runtime_error("Delegates miss [GameWorld::FindGameObjectByName] Function!"); }
+			if (!OnFindGameObjectsAllByName) { throw std::runtime_error("Delegates miss [GameWorld::FindGameObjectsAllByName] Function!"); }
+			if (!OnFindGameObjectByTag) { throw std::runtime_error("Delegates miss [GameWorld::FindGameObjectByTag] Function!"); }
+			if (!OnFindGameObjectsByTag) { throw std::runtime_error("Delegates miss [GameWorld::FindGameObjectsByTag] Function!"); }
+
 			return true;
 		}
 		inline void UnRegister() noexcept
@@ -61,6 +66,11 @@ namespace Online::Runtime
 			OnIsSceneLoading = nullptr;
 			OnDisplayPendingScene = nullptr;
 			OnIsPendingSceneReady = nullptr;
+
+			OnFindGameObjectByName = nullptr;
+			OnFindGameObjectsAllByName = nullptr;
+			OnFindGameObjectByTag = nullptr;
+			OnFindGameObjectsByTag = nullptr;
 		}
 	public:
 		inline Online::Game::Scene* InvokeOnGetActiveScene() const noexcept
@@ -119,6 +129,23 @@ namespace Online::Runtime
 		{
 			return OnIsPendingSceneReady();
 		}
+
+		inline Game::GameObject* InvokeOnFindGameObjectByName(std::string_view name) noexcept
+		{
+			return OnFindGameObjectByName(name);
+		}
+		inline std::vector<Game::GameObject*> InvokeOnFindGameObjectsAllByName(std::string_view name) noexcept
+		{
+			return OnFindGameObjectsAllByName(name);
+		}
+		inline Game::GameObject* InvokeOnFindGameObjectByTag(std::string_view tagName) noexcept
+		{
+			return OnFindGameObjectByTag(tagName);
+		}
+		inline std::vector<Game::GameObject*> InvokeOnFindGameObjectsByTag(std::string_view tagName) noexcept
+		{
+			return OnFindGameObjectsByTag(tagName);
+		}
 	private:
 		Online::Game::Scene* (*OnGetActiveScene)() noexcept = nullptr;
 		entt::registry& (*OnGetRegistry)() noexcept = nullptr;
@@ -134,6 +161,10 @@ namespace Online::Runtime
 		bool (*OnIsSceneLoading)() noexcept = nullptr;
 		void (*OnDisplayPendingScene)() noexcept = nullptr;
 		bool (*OnIsPendingSceneReady)() noexcept = nullptr;
+		Game::GameObject* (*OnFindGameObjectByName)(std::string_view) noexcept = nullptr;
+		std::vector<Game::GameObject*>(*OnFindGameObjectsAllByName)(std::string_view) noexcept = nullptr;
+		Game::GameObject* (*OnFindGameObjectByTag)(std::string_view) noexcept = nullptr;
+		std::vector<Game::GameObject*>(*OnFindGameObjectsByTag)(std::string_view) noexcept = nullptr;
 	};
 }
 
@@ -194,5 +225,21 @@ namespace Online::Game
 	inline bool IsPendingSceneReady() noexcept
 	{
 		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnIsPendingSceneReady();
+	}
+	inline GameObject* FindGameObjectByName(std::string_view name) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectByName(name);
+	}
+	inline std::vector<GameObject*> FindGameObjectsAllByName(std::string_view name) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectsAllByName(name);
+	}
+	inline GameObject* FindGameObjectByTag(std::string_view tagName) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectByTag(tagName);
+	}
+	inline std::vector<GameObject*> FindGameObjectsByTag(std::string_view tagName) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectsByTag(tagName);
 	}
 }

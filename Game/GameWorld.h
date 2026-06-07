@@ -144,7 +144,55 @@ namespace Online::Game
             return transform->GetWorldRotation();
 		}
 
-    public:
+        inline GameObject* FindGameObjectByName(std::string_view name) noexcept
+        {
+            if (!activeScene)
+                return nullptr;
+            return activeScene->FindGameObjectByName(name);
+        }
+        inline const GameObject* FindGameObjectByName(std::string_view name) const noexcept
+        {
+            if (!activeScene)
+                return nullptr;
+            return activeScene->FindGameObjectByName(name);
+        }
+        inline std::vector<GameObject*> FindGameObjectsAllByName(std::string_view name)
+        {
+            if (!activeScene)
+                return {};
+            return activeScene->FindGameObjectsAllByName(name);
+        }
+        inline std::vector<const GameObject*> FindGameObjectsAllByName(std::string_view name) const noexcept
+        {
+            if (!activeScene)
+                return {};
+            return static_cast<const Scene*>(activeScene)->FindGameObjectsAllByName(name);
+        }
+
+        inline GameObject* FindGameObjectByTag(std::string_view tagName) noexcept
+        {
+            if (!activeScene)
+                return nullptr;
+            return activeScene->FindGameObjectByTag(tagName);
+        }
+        inline const GameObject* FindGameObjectByTag(std::string_view tagName) const noexcept
+        {
+            if (!activeScene)
+                return nullptr;
+            return activeScene->FindGameObjectByTag(tagName);
+        }
+        inline std::vector<GameObject*> FindGameObjectsByTag(std::string_view tagName)
+        {
+            if (!activeScene)
+                return {};
+            return activeScene->FindGameObjectsByTag(tagName);
+        }
+        inline std::vector<const GameObject*> FindGameObjectsByTag(std::string_view tagName) const noexcept
+        {
+            if (!activeScene)
+                return {};
+            return static_cast<const Scene*>(activeScene)->FindGameObjectsByTag(tagName);
+        }
 
     private:
         Scene* activeScene = nullptr;

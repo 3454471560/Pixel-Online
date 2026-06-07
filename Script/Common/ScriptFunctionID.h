@@ -9,6 +9,9 @@ namespace Online::Script
         RotateOverTime,
         BeginScene,
         LoadingScene,
+        Button,
+        FollowOverTime,
+        TextInput,
         HealthBarController,
         Count
     };

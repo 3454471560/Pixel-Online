@@ -119,6 +119,30 @@ namespace
 		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetMousePosition();
 
 	}
+	inline std::string OnGetTextInputBuffer() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetTextInputBuffer();
+	}
+	inline void OnStartTextInput() noexcept
+	{
+		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->StartTextInput();
+	}
+	inline void OnStopTextInput() noexcept
+	{
+		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->StopTextInput();
+	}
+	inline std::string OnGetCompositionText() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetCompositionText();
+	}
+	inline int OnGetCompositionCursor() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetCompositionCursor();
+	}
+	inline void OnSetTextInputRect(int x, int y, int w, int h) noexcept
+	{
+		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->SetTextInputRect(x, y, w, h);
+	}
 #pragma endregion
 
 #pragma region Task
@@ -317,6 +341,22 @@ namespace
 	inline bool OnIsPendingSceneReady() noexcept
 	{
 		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->IsPendingSceneReady();
+	}
+	inline Online::Game::GameObject* OnFindGameObjectByName(std::string_view name) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectByName(name);
+	}
+	inline std::vector<Online::Game::GameObject*> OnFindGameObjectsAllByName(std::string_view name) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectsAllByName(name);
+	}
+	inline Online::Game::GameObject* OnFindGameObjectByTag(std::string_view tagName) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectByTag(tagName);
+	}
+	inline std::vector<Online::Game::GameObject*> OnFindGameObjectsByTag(std::string_view tagName) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectsByTag(tagName);
 	}
 #pragma endregion
 
@@ -584,6 +624,12 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(InputMonitor).OnResetAllState = OnResetAllState;
 		FUNCTABLE(InputMonitor).OnResetMouseState = OnResetMouseState;
 		FUNCTABLE(InputMonitor).OnGetMousePosition = OnGetMousePosition;
+		FUNCTABLE(InputMonitor).OnGetTextInputBuffer = OnGetTextInputBuffer;
+		FUNCTABLE(InputMonitor).OnStartTextInput = OnStartTextInput;
+		FUNCTABLE(InputMonitor).OnStopTextInput = OnStopTextInput;
+		FUNCTABLE(InputMonitor).OnGetCompositionText = OnGetCompositionText;
+		FUNCTABLE(InputMonitor).OnGetCompositionCursor = OnGetCompositionCursor;
+		FUNCTABLE(InputMonitor).OnSetTextInputRect = OnSetTextInputRect;
 #pragma endregion
 
 #pragma region Config
@@ -616,6 +662,11 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(GameWorld).OnIsSceneLoading = OnIsSceneLoading;
 		FUNCTABLE(GameWorld).OnDisplayPendingScene = OnDisplayPendingScene;
 		FUNCTABLE(GameWorld).OnIsPendingSceneReady = OnIsPendingSceneReady;
+
+		FUNCTABLE(GameWorld).OnFindGameObjectByName = OnFindGameObjectByName;
+		FUNCTABLE(GameWorld).OnFindGameObjectsAllByName = OnFindGameObjectsAllByName;
+		FUNCTABLE(GameWorld).OnFindGameObjectByTag = OnFindGameObjectByTag;
+		FUNCTABLE(GameWorld).OnFindGameObjectsByTag = OnFindGameObjectsByTag;
 #pragma endregion
 
 #pragma region Net
@@ -717,8 +768,8 @@ bool Online::Runtime::Client::Initialize()
 		if (!MODULE(ThreadTracker).Initialize()) { throw std::runtime_error("Online [ThreadTracker] Module Initialize Fail!"); }
 		if (!MODULE(Logger).Initialize()) { throw std::runtime_error("Online [Logger] Module Initialize Fail!"); }
 		if (!MODULE(TaskScheduler).Initialize()) { throw std::runtime_error("Online [TaskScheduler] Module Initialize Fail!"); }
-		if (!MODULE(Window).Initialize(MODULE(Configurator)->GetWindowWidth(), MODULE(Configurator)->GetWindowHeight(), MODULE(Configurator)->GetWindowName().c_str())) { throw std::runtime_error("Online [Window] Module Initialize Fail!"); }
 		if (!MODULE(EventDispatcher).Initialize()) { throw std::runtime_error("Online [EventDispatcher] Module Initialize Fail!"); }
+		if (!MODULE(Window).Initialize(MODULE(Configurator)->GetWindowWidth(), MODULE(Configurator)->GetWindowHeight(), MODULE(Configurator)->GetWindowName().c_str())) { throw std::runtime_error("Online [Window] Module Initialize Fail!"); }
 		if (!MODULE(AssetHub).Initialize(MODULE(Configurator)->GetAnimations(), MODULE(Configurator)->GetTileMaps())) { throw std::runtime_error("Online [AssetHub] Module Initialize Fail!"); }
 		if (!MODULE(LifeCycleTable).Initialize()) { throw std::runtime_error("Online [LifeCycleTable] Module Initialize Fail!"); }
 		if (!MODULE(GameWorld).Initialize()) { throw std::runtime_error("Online [GameWorld] Module Initialize Fail!"); }
@@ -946,7 +997,7 @@ void Online::Runtime::Client::Render()
 
 			MODULE(RenderPipeline)->AddRenderItem(
 #pragma region AddRenderItem
-				sprite.GetLayerMask(),
+				obj->GetLayerMask(),
 				sprite.GetTexture(),
 				sprite.GetRenderQueue(),
 				sprite.GetSrcRect(),
@@ -968,7 +1019,7 @@ void Online::Runtime::Client::Render()
 				continue;
 
 			MODULE(RenderPipeline)->AddRenderText(
-				textComp.GetLayerMask(),
+				obj->GetLayerMask(),
 				textComp.GetFont(),
 				textComp.GetText(),
 				textComp.GetRenderQueue(),

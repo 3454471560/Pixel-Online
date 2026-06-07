@@ -15,24 +15,40 @@ namespace Online::Window
 
 		RegisterKeyMap();
 
-		const Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+		SDL_SetHint(SDL_HINT_IME_INTERNAL_EDITING, "0"); // 确保不启用内部编辑
+		SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+
+		const Uint32 flags = SDL_WINDOW_SHOWN /*| SDL_WINDOW_BORDERLESS*/;
 		window = SDL_CreateWindow(
 			title ? title : "SDLWindow",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			width, height, flags
 		);
 
+		SDL_SetHint(SDL_HINT_IME_INTERNAL_EDITING, "0");
+
 		if (!window) { return false; }
-		SDL_StartTextInput();
 		shouldClose = false;
+
+		SDL_StopTextInput();
+
+		textInputStartToken = Online::Event::Subscribe(Online::Event::EventType::TextInputStart,&SDLWindow::OnTextInputStartThunk, this);
+		textInputStopToken = Online::Event::Subscribe(Online::Event::EventType::TextInputStop,&SDLWindow::OnTextInputStopThunk, this);
+		textInputRectToken = Online::Event::Subscribe(Online::Event::EventType::SetTextInputRect,&SDLWindow::OnSetTextInputRectThunk, this);
+
 		return true;
 	}
 
 	void SDLWindow::Release()
 	{
-		SDL_StopTextInput();
 		if (window)
 		{
+			if (textInputStartToken.type != Online::Event::EventType::Invalid)
+				Online::Event::UnSubscribe(textInputStartToken);
+			if (textInputStopToken.type != Online::Event::EventType::Invalid)
+				Online::Event::UnSubscribe(textInputStopToken);
+			if (textInputRectToken.type != Online::Event::EventType::Invalid)
+				Online::Event::UnSubscribe(textInputRectToken);
 			SDL_DestroyWindow(window);
 			window = nullptr;
 		}
@@ -203,6 +219,12 @@ namespace Online::Window
 		Online::Event::Emit(Online::Event::Event(Online::Event::EventType::MouseButton, &args));
 	}
 
+	void SDLWindow::EmitTextEditing(const char* text, int start, int length)
+	{
+		auto args = Online::Event::TextEditingEventArgs(text, start, length);
+		Online::Event::Emit(Online::Event::Event(Online::Event::EventType::TextEditing, &args));
+	}
+
 	void SDLWindow::EmitWindowFocusGained()
 	{
 		auto args = Online::Event::WindowFocusEventArgs(true);
@@ -231,6 +253,41 @@ namespace Online::Window
 	{
 		auto args = Online::Event::TextInputEventArgs(text);
 		Online::Event::Emit(Online::Event::Event(Online::Event::EventType::TextInput, &args));
+	}
+
+	void SDLWindow::OnTextInputStart(const Online::Event::Event& event)
+	{
+		SDL_StartTextInput();
+	}
+
+	void SDLWindow::OnTextInputStop(const Online::Event::Event& event)
+	{
+		SDL_StopTextInput();
+	}
+
+	void SDLWindow::OnSetTextInputRect(const Online::Event::Event& event)
+	{
+		const auto& args = event.As<Online::Event::SetTextInputRectEventArgs>();
+		if (window)
+		{
+			SDL_Rect rect = { args.x, args.y, args.w, args.h };
+			SDL_SetTextInputRect(&rect);
+		}
+	}
+
+	void SDLWindow::OnTextInputStartThunk(void* listener, const Online::Event::Event& event)
+	{
+		static_cast<SDLWindow*>(listener)->OnTextInputStart(event);
+	}
+
+	void SDLWindow::OnTextInputStopThunk(void* listener, const Online::Event::Event& event)
+	{
+		static_cast<SDLWindow*>(listener)->OnTextInputStop(event);
+	}
+
+	void SDLWindow::OnSetTextInputRectThunk(void* listener, const Online::Event::Event& event)
+	{
+		static_cast<SDLWindow*>(listener)->OnSetTextInputRect(event);
 	}
 
 	void SDLWindow::PollEvents()
@@ -330,6 +387,11 @@ namespace Online::Window
 			case SDL_TEXTINPUT:
 			{
 				EmitTextInput(e.text.text);
+				break;
+			}
+			case SDL_TEXTEDITING:
+			{
+				EmitTextEditing(e.edit.text, e.edit.start, e.edit.length);
 				break;
 			}
 			default:

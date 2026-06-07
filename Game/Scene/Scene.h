@@ -66,6 +66,113 @@ namespace Online::Game
         GameObject* GetGameObject(entt::entity entity) noexcept;
         const GameObject* GetGameObject(entt::entity entity) const noexcept;
 
+        GameObject* FindGameObjectByName(std::string_view name) noexcept
+        {
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetName() == name)
+                    return GetGameObject(e);
+            }
+            return nullptr;
+        }
+        const GameObject* FindGameObjectByName(std::string_view name) const noexcept
+        {
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetName() == name)
+                    return GetGameObject(e);
+            }
+            return nullptr;
+        }
+        std::vector<GameObject*> FindGameObjectsAllByName(std::string_view name)
+        {
+            std::vector<GameObject*> ret;
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetName() == name)
+                {
+                    if (GameObject* go = GetGameObject(e))
+                        ret.push_back(go);
+                }
+            }
+            return ret;
+        }
+        std::vector<const GameObject*> FindGameObjectsAllByName(std::string_view name) const
+        {
+            std::vector<const GameObject*> ret;
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetName() == name)
+                {
+                    if (const GameObject* go = GetGameObject(e))
+                        ret.push_back(go);
+                }
+            }
+            return ret;
+        }
+
+
+        GameObject* FindGameObjectByTag(std::string_view tagName) noexcept
+        {
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetTag() == tagName)
+                    return GetGameObject(e);
+            }
+            return nullptr;
+        }
+        const GameObject* FindGameObjectByTag(std::string_view tagName) const noexcept
+        {
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetTag() == tagName)
+                    return GetGameObject(e);
+            }
+            return nullptr;
+        }
+        std::vector<GameObject*> FindGameObjectsByTag(std::string_view tagName)
+        {
+            std::vector<GameObject*> ret;
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetTag() == tagName)
+                {
+                    if (GameObject* go = GetGameObject(e))
+                        ret.push_back(go);
+                }
+            }
+            return ret;
+        }
+        std::vector<const GameObject*> FindGameObjectsByTag(std::string_view tagName) const
+        {
+            std::vector<const GameObject*> ret;
+            auto tagView = ecsRegistry.view<Tag>();
+            for (auto e : tagView)
+            {
+                const Tag& tagComp = tagView.get<Tag>(e);
+                if (tagComp.GetTag() == tagName)
+                {
+                    if (const GameObject* go = GetGameObject(e))
+                        ret.push_back(go);
+                }
+            }
+            return ret;
+        }
+
         template<typename... Components>
         auto GetView()
         {
@@ -133,7 +240,6 @@ namespace Online::Game
         std::vector<entt::entity> delayDestroyQueue;
         Online::Core::ObjectPool<GameObject> gameObjectPool;
         std::unordered_map<entt::entity, GameObject*> entityToGameObject;
-        std::unordered_map<std::string, GameObject*> gameObjects;
 
         Online::Event::EventToken triggerEnterToken;
         Online::Event::EventToken triggerExitToken;

@@ -174,17 +174,21 @@ namespace Online::Render
                     currentPass.Commands.emplace_back(worldCmd);
                 }
 
-                currentPass.LineCommands.reserve(linePass.size());
-                for (auto& lineCmd : linePass)
+                if (passConfig.CameraSnapshot.IsWorld)
                 {
-                    lineCmd.StartPoint = cam.WorldToScreen(lineCmd.StartPoint);
-                    lineCmd.EndPoint = cam.WorldToScreen(lineCmd.EndPoint);
+                    currentPass.LineCommands.reserve(linePass.size());
+                    for (auto& lineCmd : linePass)
+                    {
+                        lineCmd.StartPoint = cam.WorldToScreen(lineCmd.StartPoint);
+                        lineCmd.EndPoint = cam.WorldToScreen(lineCmd.EndPoint);
 
-                    currentPass.LineCommands.emplace_back(lineCmd);
+                        currentPass.LineCommands.emplace_back(lineCmd);
+                    }
+
+                    linePass.clear();
                 }
 
                 pass.clear();
-                linePass.clear();
             }
             inline void SwapBuffer()
             {
@@ -193,7 +197,6 @@ namespace Online::Render
             inline void BeginFrame()
             {
                 pass.clear();
-                //linePass.clear();
                 visibleIndices.clear();
                 front.Clear();
             }
@@ -316,12 +319,6 @@ namespace Online::Render
             LineDrawCommand cmd(start, end, color, thickness);
 
             renderPacket.PushLineCommandToPass(cmd);
-        }
-        inline void SubmitText(Asset::FontID inFontId, std::string inText, glm::vec2 inPos, float scale, Online::Core::Color inColor, float inLimitWidth)
-        {
-            //TextDrawCommand cmd(inFontId, inText, inPos, scale, inColor, inLimitWidth);
-
-            //renderPacket.PushTextCommandToPass(cmd);
         }
         inline void EndPass()
         {

@@ -72,6 +72,11 @@ namespace Online::Asset
         Tex_FontDengAtlas,
 #pragma endregion
 
+#pragma region Cursor
+        Tex_TextCursor,
+#pragma endregion
+
+
 #pragma region Count
 		Count
 #pragma endregion
@@ -115,7 +120,9 @@ namespace Online::Asset
 
             {"Tex_WindowBuffer", TextureID::Tex_WindowBuffer},
             {"Tex_BackBuffer_1", TextureID::Tex_BackBuffer_1},
-            {"Tex_BackBuffer_2", TextureID::Tex_BackBuffer_2}
+            {"Tex_BackBuffer_2", TextureID::Tex_BackBuffer_2},
+
+            {"Tex_TextCursor",TextureID::Tex_TextCursor}
         };
 
         auto it = lookup.find(str);
@@ -170,12 +177,14 @@ namespace Online::Asset
             "Tex_TileMap4",
             // Font
             "Tex_FontIpixAtlas",
-            "Tex_FontDengAtlas"
+            "Tex_FontDengAtlas",
+            //Cursor
+            "Tex_TextCursor"
         };
 
         const size_t idx = static_cast<size_t>(id);
         if (idx >= lookup.size())
-            return lookup[0]; // Ô½½ç·µ»ØDefault
+            return lookup[0];
 
         std::string name = std::string(lookup[idx]);
 

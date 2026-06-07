@@ -10,7 +10,7 @@
 #include <Input/Common/MouseState.h>
 
 #include <glm.hpp>
-
+#include <string>
 #include <cstddef>
 #include <cstring>
 
@@ -62,7 +62,6 @@ namespace Online::Input
             std::memcpy(&mouseCurrentFrameState, &mouseHardWareState, sizeof(mouseCurrentFrameState));
         }
 
-    public:
         inline bool GetKeyDown(Online::Input::KeyCode keyCode) const noexcept
         {
             return (keyCode != Online::Input::KeyCode::Unknown)
@@ -84,18 +83,28 @@ namespace Online::Input
                 : false;
         }
 
-        inline glm::vec2 GetMousePosition()
+        inline glm::vec2 GetMousePosition() const noexcept
         {
-            return { mouseCurrentFrameState.mouseX , mouseCurrentFrameState.mouseY };
+            return { mouseCurrentFrameState.mouseX, mouseCurrentFrameState.mouseY };
         }
 
-    public:
+        std::string GetTextInputBuffer() noexcept;
+
+        std::string GetCompositionText() const noexcept;
+        int GetCompositionCursor() const noexcept;
+
+        void StartTextInput() noexcept;
+        void StopTextInput() noexcept;
+
+        void SetTextInputRect(int x, int y, int w, int h) noexcept;
+
         inline void ResetAllState() noexcept
         {
             std::memset(hardwareState, 0, sizeof(hardwareState));
             std::memset(currentFrameState, 0, sizeof(currentFrameState));
             std::memset(previousFrameState, 0, sizeof(previousFrameState));
         }
+
         inline void ResetMouseState() noexcept
         {
             constexpr size_t mouseStart = static_cast<size_t>(KeyCode::Mouse0);
@@ -107,14 +116,20 @@ namespace Online::Input
                 previousFrameState[i] = false;
             }
         }
+
     private:
         void OnKey(const Online::Event::Event& event);
         void OnMouseButton(const Online::Event::Event& event);
         void OnMouseMove(const Online::Event::Event& event);
+        void OnTextInput(const Online::Event::Event& event);
+        void OnTextEditing(const Online::Event::Event& event);
 
         static void OnKeyThunk(void* listener, const Online::Event::Event& event);
         static void OnMouseButtonThunk(void* listener, const Online::Event::Event& event);
         static void OnMouseMoveThunk(void* listener, const Online::Event::Event& event);
+        static void OnTextInputThunk(void* listener, const Online::Event::Event& event);
+        static void OnTextEditingThunk(void* listener, const Online::Event::Event& event);
+
 
     private:
         Online::Event::EventToken keyToken;
@@ -122,6 +137,13 @@ namespace Online::Input
         Online::Event::EventToken mouseMoveToken;
         Online::Event::EventToken mouseScrollToken;
         Online::Event::EventToken windowResizeToken;
+        Online::Event::EventToken textInputToken;
+        Online::Event::EventToken textEditingToken;
+
+        std::string textInputBuffer;
+        std::string compositionText;
+        int compositionStart = 0;
+        int compositionLength = 0;
 
         bool currentFrameState[static_cast<size_t>(Online::Input::KeyCode::Unknown)] = {};
         bool previousFrameState[static_cast<size_t>(Online::Input::KeyCode::Unknown)] = {};

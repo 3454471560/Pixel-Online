@@ -3,7 +3,9 @@
 #include <Script/LifeCycleFunc/Rotate.h> 
 #include <Script/LifeCycleFunc/BeginScene.h>
 #include <Script/LifeCycleFunc/LoadingScene.h>
-
+#include <Script/LifeCycleFunc/Button.h>
+#include <Script/LifeCycleFunc/Follow.h>
+#include <Script/LifeCycleFunc/TextInput.h>
 namespace Online::Script
 {
     bool LifeCycleTable::Initialize()
@@ -13,6 +15,9 @@ namespace Online::Script
         Script::Register(Rotate::Information());
         Script::Register(BeginScene::Information());
         Script::Register(LoadingScene::Information());
+        Script::Register(Button::Information());
+        Script::Register(Follow::Information());
+        Script::Register(TextInput::Information());
         return true;
     }
 

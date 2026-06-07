@@ -28,7 +28,6 @@ namespace Online::Game
         {
             ctx.Write("fontID", static_cast<int>(Font));
             ctx.Write("text", Text);
-            ctx.Write("layer", static_cast<uint32_t>(LayerMask.GetEnum()));
             ctx.Write("queue", static_cast<uint16_t>(RenderQueueType));
             ctx.Write("drawOrder", DrawOrder);
             ctx.Write("depth", Depth);
@@ -48,8 +47,6 @@ namespace Online::Game
             int fid = 0; ctx.Read("fontID", fid); Font = static_cast<Asset::FontID>(fid);
             ctx.Read("text", Text);
 
-            uint32_t layer = 0; ctx.Read("layer", layer);
-            LayerMask = static_cast<Render::RenderLayer>(layer);
 
             uint16_t queue = 0; ctx.Read("queue", queue);
             RenderQueueType = static_cast<Render::RenderQueue>(queue);
@@ -76,7 +73,6 @@ namespace Online::Game
     public:
         inline Asset::FontID GetFont() const noexcept { return Font; }
         inline const std::string& GetText() const noexcept { return Text; }
-        inline Core::StateFlags<Render::RenderLayer> GetLayerMask() const noexcept { return LayerMask; }
         inline Render::RenderQueue GetRenderQueue() const noexcept { return RenderQueueType; }
         inline uint8_t GetDrawOrder() const noexcept { return DrawOrder; }
         inline uint8_t GetDepth() const noexcept { return Depth; }
@@ -103,7 +99,6 @@ namespace Online::Game
         {
             Text = reinterpret_cast<const char*>(txt);
         }
-        inline void SetLayer(Render::RenderLayer layer) noexcept { LayerMask = layer; }
         inline void SetRenderQueue(Render::RenderQueue q) noexcept { RenderQueueType = q; }
         inline void SetDrawOrder(uint8_t order) noexcept { DrawOrder = order; }
         inline void SetDepth(uint8_t d) noexcept { Depth = d; }
@@ -118,7 +113,6 @@ namespace Online::Game
     private:
         Asset::FontID   Font = Asset::FontID::Ipix;
         std::string     Text;
-        Core::StateFlags<Render::RenderLayer> LayerMask = Render::RenderLayer::Default;
         Render::RenderQueue RenderQueueType = Render::RenderQueue::World;
         uint8_t         DrawOrder = 0;
         uint8_t         Depth = 0;

@@ -9,19 +9,23 @@
 #include<chrono>
 #include<thread> 
 
+#include<Script/LifeCycleFunc/Follow.h>
+#include<Script/LifeCycleFunc/Button.h>
+#include<Script/LifeCycleFunc/TextInput.h>
+
 bool Online::Game::GameWorld::Initialize()
 {
 	BuildSettings["BeginScene"] = Core::GetExeDir() + "scenes\\begin.json";
 	BuildSettings["LoadingScene"] = Core::GetExeDir() + "scenes\\loading.json";
-	BuildSettings["TestScene"] = Core::GetExeDir() + "scenes\\test.json";
+	BuildSettings["StartScene"] = Core::GetExeDir() + "scenes\\start.json";
 
-	//loadingScene = ONLINE_NEW(Scene);
-	//if (!loadingScene->DeserializeFromFile(BuildSettings["LoadingScene"], Serialize::API::Json))
-	//{
-	//	ONLINE_DELETE(loadingScene);
-	//	loadingScene = nullptr;
-	//	throw std::runtime_error("Failed to load loading scene");
-	//}
+	loadingScene = ONLINE_NEW(Scene);
+	if (!loadingScene->DeserializeFromFile(BuildSettings["LoadingScene"], Serialize::API::Json))
+	{
+		ONLINE_DELETE(loadingScene);
+		loadingScene = nullptr;
+		throw std::runtime_error("Failed to load loading scene");
+	}
 
 	activeScene = ONLINE_NEW(Scene);
 
@@ -36,65 +40,162 @@ bool Online::Game::GameWorld::Initialize()
 	Camera& camera = mainCamera->AddComponent<Camera>();
 	camera.SetRenderTarget(Online::Asset::TextureID::Tex_WindowBuffer);
 	camera.SetRenderSize({ 1280, 780 });
+	camera.SetZone(0.5f);
 	mainCamera->GetTransform()->SetLocalPosition({ 0.0f, 0.0f });
 
-	AudioListener& listener = mainCamera->AddComponent<AudioListener>();
-	listener.SetMusic(Asset::MusicID::Mus_BackGround);
-	listener.SetMusicVolume(0.3f);
+	GameObject* UICamera = activeScene->CreateGameObject("UI Camera", "UICamera");
+	Camera& UIcamera = UICamera->AddComponent<Camera>();
+	UIcamera.SetRenderTarget(Online::Asset::TextureID::Tex_BackBuffer_1);
+	UIcamera.SetRenderSize({ 1280, 780 });
+	UIcamera.SetCullingMask(Render::RenderLayer::UI);
+	UIcamera.SetClearColor(Core::Color::Clear);
+	UIcamera.SetIsWorld(false);
+	UICamera->GetTransform()->SetLocalPosition({ 0.0f, 0.0f });
 
-	GameObject* back = activeScene->CreateGameObject("back");
-	back->GetComponent<Transform>()->SetLocalScale({ 4,4 });
 
-	GameObject* background = activeScene->CreateGameObject();
-	Sprite& backSprite = background->AddComponent<Sprite>();
-	backSprite.SetAnchor(Core::Anchor::TopLeft);
-	backSprite.SetTexture(Asset::TextureID::Tex_BackGround_Far);
-	backSprite.SetRenderQueue(Render::RenderQueue::Background);
-	backSprite.SetDepth(2);
+	GameObject* phys = activeScene->CreateGameObject("dog");
+	Transform* wuli = phys->GetComponent<Transform>();
+	wuli->SetLocalScale({ 4,4 });
+	wuli->SetLocalPosition({ 700,800 });
 
-	GameObject* midground = activeScene->CreateGameObject();
-	Sprite& midSprite = midground->AddComponent<Sprite>();
-	midSprite.SetAnchor(Core::Anchor::TopLeft);
-	midSprite.SetTexture(Asset::TextureID::Tex_BackGround_Mid);
-	midSprite.SetRenderQueue(Render::RenderQueue::Background);
-	midSprite.SetDepth(3);
+	Sprite& mainSprite = phys->AddComponent<Sprite>();
+	Animator& mainAnim = phys->AddComponent<Animator>();
+	mainSprite.SetRenderOffset({ 0,-58 });
+	mainSprite.SetRenderQueue(Render::RenderQueue::World);
+	mainAnim.SetSprite(&mainSprite);
 
-	GameObject* frontground = activeScene->CreateGameObject();
-	Sprite& frontSprite = frontground->AddComponent<Sprite>();
-	frontSprite.SetAnchor(Core::Anchor::TopLeft);
-	frontSprite.SetTexture(Asset::TextureID::Tex_BackGround_Near);
-	frontSprite.SetRenderQueue(Render::RenderQueue::Background);
-	frontSprite.SetDepth(4);
+	GameObject* overlayGO = activeScene->CreateGameObject("Overlay");
+	overlayGO->SetParent(phys);
+	Sprite& overlaySprite = overlayGO->AddComponent<Sprite>();
+	Animator& overlayAnim = overlayGO->AddComponent<Animator>();
+	overlaySprite.SetRenderOffset({ 0,-55 });
+	overlayAnim.SetSprite(&overlaySprite);
+	overlaySprite.OnDisable();
 
-	background->SetParent(back, false);
-	midground->SetParent(back, false);
-	frontground->SetParent(back, false);
+	AnimatorController& controller = phys->AddComponent<AnimatorController>();
+	controller.SetStates({
+		{ "Idle", Asset::AnimationClipID::Anim_SilverHat_Idle },
+		{ "Run",  Asset::AnimationClipID::Anim_SilverHat_Run }
+		});
+	controller.SetMainAnimator(&mainAnim);
+	controller.SetOverlayAnimator(&overlayAnim);
 
-	GameObject* drink = activeScene->CreateGameObject("drink");
-	Transform* drinkTrans = drink->GetComponent<Transform>();
-	drinkTrans->SetLocalPosition({ 620, 310 });
-	drinkTrans->SetLocalScale({ 4,4 });
-	Sprite& drinkSprite = drink->AddComponent<Sprite>();
-	drinkSprite.SetAnchor(Core::Anchor::Center);
-	drinkSprite.SetColor(Core::Color::Black);
-	Animator& drinkAnim = drink->AddComponent<Animator>();
+	controller.SetTransitions({
+	{
+		"Idle",
+		"Run",
+		0.0f,
+		{ { "Speed", AnimatorConditionMode::Greater, 0.1f } }
+	},
+	{
+		"Run",
+		"Idle",
+		0.0f,
+		{ { "Speed", AnimatorConditionMode::Less, 0.1f } }
+	}
+		});
 
-	drinkAnim.SetSprite(&drinkSprite);
-	drinkAnim.Play(Asset::AnimationClipID::Anim_Loading);
+	controller.SetDefaultStateName("Idle");
+	controller.Play("Idle");
 
-	GameObject* text = activeScene->CreateGameObject("text");
-	Transform* textTrans = text->GetComponent<Transform>();
-	textTrans->SetLocalPosition({ 560, 450 });
-	textTrans->SetLocalScale({ 1.5,1.5 });
-	Text& textComp = text->AddComponent<Text>();
-	textComp.SetAnchor(Core::Anchor::TopLeft);
-	textComp.SetColor(Core::Color::Black);
-	textComp.SetFont(Asset::FontID::Deng);
-	textComp.SetRenderQueue(Render::RenderQueue::Background);
-	textComp.SetDepth(5);
-	//textComp.SetLetterSpacing(-3);
-	text->AddScriptFunction(Script::ScriptFunctionID::LoadingScene);
+	Collider& col = phys->AddComponent<Collider>();
+	col.SetShape(Physics::ColliderShape::Capsule);
+	col.SetHalfSize({ 12,6 });
+	col.SetRadius(12);
+	col.SetCategoryBits(Physics::PhysicsLayer::Player);
+	Rigidbody& rb = phys->AddComponent<Rigidbody>();
+	rb.SetGravityScale(1.5);
+	rb.SetFixedRotation(true);
+	phys->AddScriptFunction(Script::ScriptFunctionID::MoveLeftRight);
 
+	Follow& ff = mainCamera->AddComponent<Follow>();
+	ff.SetTarget(wuli);
+	ff.SetFollowMode(FollowMode::Linear);
+	ff.SetLinearSpeed(10.0f);
+	ff.SetOffest({ -400, -1000 });
+
+	GameObject* tri = activeScene->CreateGameObject("Tri");
+	Transform* tritrans = tri->GetComponent<Transform>();
+	tritrans->SetLocalPosition({ 1200,1200 });
+	tritrans->SetLocalScale({ 2,2 });
+	Collider& tricoll = tri->AddComponent<Collider>();
+	tricoll.SetTrigger(true);
+
+	GameObject* tri1 = activeScene->CreateGameObject("Tri1");
+	Transform* tritrans1 = tri1->GetComponent<Transform>();
+	tritrans1->SetLocalPosition({ 300,1200 });
+	tritrans1->SetLocalScale({ 2,2 });
+	Collider& tricoll1 = tri1->AddComponent<Collider>();
+	tricoll1.SetTrigger(true);
+	Rigidbody& tirrigi1 = tri1->AddComponent<Rigidbody>();
+	tirrigi1.SetBodyType(Physics::BodyType::Kinematic);
+
+	GameObject* tile = activeScene->CreateGameObject("Tile");
+	Transform* tiletrans = tile->GetComponent<Transform>();
+	tiletrans->SetLocalScale({ 4,4 });
+	TileMap& tilemap = tile->AddComponent<TileMap>();
+	tilemap.SetTileMapID(Config::TileMapID::Map_01);
+	tilemap.SetRenderQueue(Render::RenderQueue::Background);
+
+
+	GameObject* butone = activeScene->CreateGameObject("butone");
+	butone->SetLayer(Render::RenderLayer::UI);
+	Transform* butonetrans = butone->GetComponent<Transform>();
+	butonetrans->SetLocalScale({ 3,3 });
+	butonetrans->SetLocalPosition({ 100,100 });
+	Sprite& butonesprite = butone->AddComponent<Sprite>();
+	butonesprite.SetTexture(Asset::TextureID::Tex_Flag);
+	butonesprite.SetGrid(6,1);
+	butone->AddScriptFunction(Script::ScriptFunctionID::Button);
+
+	auto* buttonData = butone->GetScriptData<Script::Button::ButtonData>(Script::ScriptFunctionID::Button);
+	if (buttonData)
+	{
+		buttonData->SetOnClick([phys](Game::GameObject* sender) {
+			if (phys)
+			{
+				auto* trans = phys->GetTransform();
+				if (trans)
+					trans->SetWorldPosition({ 700.0f, 800.0f });
+			}
+			});
+	}
+
+	GameObject* inputObj = activeScene->CreateGameObject("NameInput");
+	inputObj->SetLayer(Render::RenderLayer::UI);
+	Transform* inputTrans = inputObj->GetTransform();
+	inputTrans->SetLocalPosition({ 300, 200 });
+	inputTrans->SetLocalScale({ 1, 1 });
+
+	GameObject* textCursor = activeScene->CreateGameObject("Cursor");
+	textCursor->SetLayer(Render::RenderLayer::UI);
+	textCursor->AddComponent<Sprite>().SetTexture(Asset::TextureID::Tex_TextCursor);
+
+	Text& inputText = inputObj->AddComponent<Text>();
+	inputText.SetFont(Asset::FontID::Ipix);
+	inputText.SetRenderQueue(Render::RenderQueue::UI);
+	inputText.SetAnchor(Core::Anchor::Center);
+
+	inputObj->AddScriptFunction(Script::ScriptFunctionID::TextInput);
+	auto* inputData = inputObj->GetScriptData<Script::TextInput::TextInputData>(Script::ScriptFunctionID::TextInput);
+	if (inputData)
+	{
+		inputData->maxChars = 16;
+		inputData->placeholder = "Entername...";
+		inputData->SetOnTextChanged([](Game::GameObject* go, const std::string& text) {
+			Online::Log::Debug("TextInput changed: " + text);
+			});
+		inputData->SetOnEnterPressed([](Game::GameObject* go, const std::string& text) {
+			Online::Log::Debug("TextInput entered: " + text);
+			});
+	}
+
+	GameObject* UICanvas = activeScene->CreateGameObject("Canvas");
+	Sprite& uisprite = UICanvas->AddComponent<Sprite>();
+	uisprite.SetTexture(Asset::TextureID::Tex_BackBuffer_1);
+	uisprite.SetAnchor(Core::Anchor::Center);
+	UICanvas->AddScriptFunction(Script::ScriptFunctionID::FollowOverTime);
+	UICanvas->GetScriptData<Script::Follow::FollowData>(Script::ScriptFunctionID::FollowOverTime)->SetTarget(mainCamera->GetComponent<Transform>());
 	return true;
 }
 
@@ -125,8 +226,6 @@ void Online::Game::GameWorld::Update()
 
 void Online::Game::GameWorld::LateUpdate()
 {
-	if (activeScene)
-		activeScene->LateUpdate(Time::delta());
 
 	if (pendingApplyScene)
 	{
@@ -143,6 +242,10 @@ void Online::Game::GameWorld::LateUpdate()
 		activeScene->ProcessAnimatorControllerSystem(Online::Time::delta());
 		activeScene->ProcessProgressBarSystem(Online::Time::delta());
 	}
+
+	if (activeScene)
+		activeScene->LateUpdate(Time::delta());
+
 }
 
 void Online::Game::GameWorld::EndFrame()

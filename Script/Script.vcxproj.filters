@@ -39,6 +39,24 @@
     <ClInclude Include="LifeCycleFunc\LoadingScene.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="LifeCycleFunc\Button.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ButtonMode.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Tool.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ButtonState.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LifeCycleFunc\Follow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LifeCycleFunc\TextInput.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LifeCycleTable.cpp">

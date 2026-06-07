@@ -10,6 +10,7 @@ namespace Online::Core
         glm::vec2  Position = { 0, 0 };
         float      Zoom = 1.0f;
         float      Rotation = 0.0f;
+        bool       IsWorld = true;
 
         CameraSnapshot(glm::vec2 position)
             : Position(position)

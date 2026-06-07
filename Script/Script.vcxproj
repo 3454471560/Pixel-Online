@@ -137,13 +137,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Common\ButtonMode.h" />
+    <ClInclude Include="Common\ButtonState.h" />
     <ClInclude Include="Common\FuncTable.h" />
     <ClInclude Include="Common\ScriptFunctionID.h" />
     <ClInclude Include="Common\ScriptFunctionInfo.h" />
+    <ClInclude Include="Common\Tool.h" />
     <ClInclude Include="LifeCycleFunc\BeginScene.h" />
+    <ClInclude Include="LifeCycleFunc\Button.h" />
+    <ClInclude Include="LifeCycleFunc\Follow.h" />
     <ClInclude Include="LifeCycleFunc\LoadingScene.h" />
     <ClInclude Include="LifeCycleFunc\MoveLeftRight.h" />
     <ClInclude Include="LifeCycleFunc\Rotate.h" />
+    <ClInclude Include="LifeCycleFunc\TextInput.h" />
     <ClInclude Include="LifeCycleTable.h" />
   </ItemGroup>
   <ItemGroup>

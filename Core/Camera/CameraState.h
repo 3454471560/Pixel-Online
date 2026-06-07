@@ -8,6 +8,7 @@ namespace Online::Core
     {
         float Zoom = 1.0f;
         float Rotation = 0.0f;
+        bool  IsWorld = true;
 
         inline CameraSnapshot BuildSnapshot(glm::vec2 position) const
         {
@@ -15,6 +16,7 @@ namespace Online::Core
             snapshot.Position = position;
             snapshot.Zoom = Zoom;
             snapshot.Rotation = Rotation;
+            snapshot.IsWorld = IsWorld;
             return snapshot;
         }
     };

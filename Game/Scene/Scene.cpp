@@ -40,7 +40,6 @@ namespace Online::Game
         entityToGameObject.clear();
         ecsRegistry.clear();
         delayDestroyQueue.clear();
-        gameObjects.clear();
         root = entt::null;
     }
 
@@ -140,6 +139,10 @@ namespace Online::Game
             {
                 coll->Serialize(entityCtx.GetSubContext("Collider"));
             }
+            if (auto* text = ecsRegistry.try_get<Text>(entity))
+            {
+                text->Serialize(entityCtx.GetSubContext("Text"));
+            }
 
             if (auto* parent = ecsRegistry.try_get<Parent>(entity))
             {
@@ -161,6 +164,8 @@ namespace Online::Game
                 }
                 entityCtx.EndArray();
             }
+
+            entityCtx.Write("layer", static_cast<uint32_t>(obj->GetLayerMask().GetEnum()));
         }
 
         ctx.EndArray();
@@ -169,9 +174,7 @@ namespace Online::Game
     void Scene::Deserialize(const Online::Serialize::DeserializeContext& ctx)
     {
         for (auto& pair : entityToGameObject)
-        {
             gameObjectPool.Release(pair.second);
-        }
         entityToGameObject.clear();
         ecsRegistry.clear();
         delayDestroyQueue.clear();
@@ -179,9 +182,7 @@ namespace Online::Game
 
         int sceneVersion = 0;
         if (!ctx.Read("version", sceneVersion))
-        {
             Online::Log::Warning("Scene deserialize: No version found, assuming version 0");
-        }
         if (sceneVersion > 1)
         {
             Online::Log::Error("Scene deserialize: Unsupported version " + std::to_string(sceneVersion));
@@ -198,44 +199,37 @@ namespace Online::Game
 
         std::unordered_map<uint32_t, entt::entity> idMap;
         idMap.reserve(entityCount);
-
         for (size_t i = 0; i < entityCount; ++i)
         {
             const Serialize::DeserializeContext& entityCtx = entitiesCtx.GetArrayElement(i);
-
             uint32_t oldId = 0;
             if (!entityCtx.Read("id", oldId))
             {
                 Online::Log::Error("Scene deserialize: Entity " + std::to_string(i) + " has no id, skipping");
                 continue;
             }
-
             entt::entity newEntity = ecsRegistry.create();
             idMap[oldId] = newEntity;
-
             ecsRegistry.emplace<Tag>(newEntity, "unnamed", "default");
             ecsRegistry.emplace<Transform>(newEntity).Reset();
             ecsRegistry.emplace<ChildLink>(newEntity);
         }
-
         if (idMap.empty())
         {
             Online::Log::Warning("Scene deserialize: No valid entities created");
             return;
         }
 
+        std::unordered_map<entt::entity, Online::Render::RenderLayer> entityLayerMap;
         std::unordered_map<uint32_t, EntityRefFixup> refFixups;
         refFixups.reserve(entityCount);
 
         for (size_t i = 0; i < entityCount; ++i)
         {
             const Serialize::DeserializeContext& entityCtx = entitiesCtx.GetArrayElement(i);
-
             uint32_t oldId = 0;
             if (!entityCtx.Read("id", oldId) || !idMap.count(oldId))
-            {
                 continue;
-            }
 
             entt::entity entity = idMap[oldId];
             EntityRefFixup fixup;
@@ -264,18 +258,14 @@ namespace Online::Game
             {
                 auto& anim = ecsRegistry.emplace<Animator>(entity);
                 anim.Deserialize(entityCtx.GetSubContext("Animator"));
-
                 fixup.hasAnimator = true;
                 if (!entityCtx.Read("spriteEntity", fixup.spriteEntityId))
-                {
                     fixup.spriteEntityId = static_cast<uint32_t>(entt::null);
-                }
             }
             if (entityCtx.HasSubContext("ProgressBar"))
             {
                 auto& pb = ecsRegistry.emplace<ProgressBar>(entity);
                 pb.Deserialize(entityCtx.GetSubContext("ProgressBar"));
-
                 fixup.hasProgressBar = true;
                 entityCtx.Read("bgEntity", fixup.bgEntityId);
                 entityCtx.Read("fgEntity", fixup.fgEntityId);
@@ -285,7 +275,6 @@ namespace Online::Game
             {
                 auto& follow = ecsRegistry.emplace<Follow>(entity);
                 follow.Deserialize(entityCtx.GetSubContext("Follow"));
-
                 fixup.hasFollow = true;
                 entityCtx.Read("targetEntity", fixup.targetEntityId);
             }
@@ -293,7 +282,6 @@ namespace Online::Game
             {
                 auto& AC = ecsRegistry.emplace<AnimatorController>(entity);
                 AC.Deserialize(entityCtx.GetSubContext("AnimatorController"));
-
                 fixup.hasAnimatorController = true;
                 entityCtx.Read("mainEntity", fixup.mainEntityId);
                 entityCtx.Read("overlayEntity", fixup.overlayEntityId);
@@ -318,6 +306,15 @@ namespace Online::Game
                 auto& coll = ecsRegistry.emplace<Collider>(entity);
                 coll.Deserialize(entityCtx.GetSubContext("Collider"));
             }
+            if (entityCtx.HasSubContext("Text"))
+            {
+                auto& text = ecsRegistry.emplace<Text>(entity);
+                text.Deserialize(entityCtx.GetSubContext("Text"));
+            }
+
+            uint32_t layerRaw = 0;
+            if (entityCtx.Read("layer", layerRaw))
+                entityLayerMap[entity] = static_cast<Online::Render::RenderLayer>(layerRaw);
 
             refFixups[oldId] = fixup;
         }
@@ -325,16 +322,11 @@ namespace Online::Game
         for (size_t i = 0; i < entityCount; ++i)
         {
             const Serialize::DeserializeContext& entityCtx = entitiesCtx.GetArrayElement(i);
-
             uint32_t oldId = 0;
             if (!entityCtx.Read("id", oldId) || !idMap.count(oldId))
-            {
                 continue;
-            }
-
             entt::entity child = idMap[oldId];
             uint32_t parentId = static_cast<uint32_t>(entt::null);
-
             if (entityCtx.Read("parent", parentId) &&
                 parentId != static_cast<uint32_t>(entt::null) &&
                 idMap.count(parentId))
@@ -346,9 +338,7 @@ namespace Online::Game
 
         uint32_t rootId = static_cast<uint32_t>(entt::null);
         if (ctx.Read("root", rootId) && idMap.count(rootId))
-        {
             root = idMap[rootId];
-        }
         else
         {
             root = entt::null;
@@ -385,98 +375,65 @@ namespace Online::Game
                 rigi->gameObject = obj;
             if (auto* coll = ecsRegistry.try_get<Collider>(entity))
                 coll->gameObject = obj;
+            if (auto* text = ecsRegistry.try_get<Text>(entity))
+                text->gameObject = obj;
             if (auto* parent = ecsRegistry.try_get<Parent>(entity))
                 parent->gameObject = obj;
 
+            auto layerIt = entityLayerMap.find(entity);
+            if (layerIt != entityLayerMap.end())
+                obj->SetLayer(static_cast<Render::RenderLayer>(layerIt->second));
 
-            gameObjects[std::string(ecsRegistry.try_get<Tag>(entity)->GetName())] = obj;
         }
 
         for (auto& [oldId, fixup] : refFixups)
         {
-            if (!idMap.count(oldId))
-            {
-                continue;
-            }
-
+            if (!idMap.count(oldId)) continue;
             entt::entity entity = idMap[oldId];
 
             if (fixup.hasProgressBar)
             {
                 auto* pb = ecsRegistry.try_get<ProgressBar>(entity);
                 if (!pb) continue;
-
                 if (fixup.bgEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.bgEntityId))
-                {
                     if (auto* bgSprite = ecsRegistry.try_get<Sprite>(idMap[fixup.bgEntityId]))
-                    {
                         pb->SetBackgroundSprite(bgSprite);
-                    }
-                }
                 if (fixup.fgEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.fgEntityId))
-                {
                     if (auto* fgSprite = ecsRegistry.try_get<Sprite>(idMap[fixup.fgEntityId]))
-                    {
                         pb->SetForegroundSprite(fgSprite);
-                    }
-                }
                 if (fixup.indicatorEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.indicatorEntityId))
-                {
                     if (auto* indTransform = ecsRegistry.try_get<Transform>(idMap[fixup.indicatorEntityId]))
-                    {
                         pb->SetIndicatorTransform(indTransform);
-                    }
-                }
             }
-
             if (fixup.hasFollow)
             {
                 auto* follow = ecsRegistry.try_get<Follow>(entity);
                 if (!follow) continue;
-
                 if (fixup.targetEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.targetEntityId))
-                {
                     if (auto* targetTransform = ecsRegistry.try_get<Transform>(idMap[fixup.targetEntityId]))
-                    {
                         follow->SetTarget(targetTransform);
-                    }
-                }
             }
-
             if (fixup.hasAnimator)
             {
                 auto* anim = ecsRegistry.try_get<Animator>(entity);
                 if (!anim) continue;
-
                 if (fixup.spriteEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.spriteEntityId))
-                {
                     if (auto* sprite = ecsRegistry.try_get<Sprite>(idMap[fixup.spriteEntityId]))
-                    {
                         anim->SetSprite(sprite);
-                    }
-                }
             }
-
             if (fixup.hasAnimatorController)
             {
                 auto* AC = ecsRegistry.try_get<AnimatorController>(entity);
                 if (!AC) continue;
-
                 if (fixup.mainEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.mainEntityId))
-                {
                     if (auto* anim = ecsRegistry.try_get<Animator>(idMap[fixup.mainEntityId]))
-                    {
                         AC->SetMainAnimator(anim);
-                    }
-                }
-
                 if (fixup.overlayEntityId != static_cast<uint32_t>(entt::null) && idMap.count(fixup.overlayEntityId))
                 {
                     entt::entity overlayEnt = idMap[fixup.overlayEntityId];
                     if (auto* overlayAnim = ecsRegistry.try_get<Animator>(overlayEnt))
                         AC->SetOverlayAnimator(overlayAnim);
                 }
-
                 if (!AC->GetCurrentStateName().empty())
                     AC->Play(AC->GetCurrentStateName());
                 else if (!AC->GetDefaultStateName().empty())
@@ -486,17 +443,14 @@ namespace Online::Game
 
         for (size_t i = 0; i < entityCount; ++i)
         {
-            const Serialize::DeserializeContext& entityCtx = ctx.GetSubContext("entities").GetArrayElement(i);
-
+            const Serialize::DeserializeContext& entityCtx = entitiesCtx.GetArrayElement(i);
             uint32_t oldId = 0;
             if (!entityCtx.Read("id", oldId) || !idMap.count(oldId))
                 continue;
-
             entt::entity entity = idMap[oldId];
             auto it = entityToGameObject.find(entity);
             if (it == entityToGameObject.end())
                 continue;
-
             GameObject* obj = it->second;
             entityCtx.GetAllSubKeys();
 
@@ -510,9 +464,7 @@ namespace Online::Game
                     {
                         uint32_t rawId = 0;
                         if (scriptCtx.GetArrayElement(j).Read("", rawId))
-                        {
                             obj->AddScriptFunction(static_cast<Script::ScriptFunctionID>(rawId));
-                        }
                     }
                 }
             }

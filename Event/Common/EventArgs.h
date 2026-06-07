@@ -113,6 +113,33 @@ namespace Online::Event
         entt::entity otherEntity;
     };
 
+    struct TextInputStartEventArgs : public EventArgs
+    {
+    };
+
+    struct TextInputStopEventArgs : public EventArgs 
+    {
+    };
+
+    struct TextEditingEventArgs : public EventArgs
+    {
+        std::string text;
+        int start = 0;
+        int length = 0;
+
+        TextEditingEventArgs(const char* txt, int s, int len)
+            : text(txt ? txt : ""), start(s), length(len) {
+        }
+    };
+
+    struct SetTextInputRectEventArgs : public EventArgs
+    {
+        int x, y, w, h;
+        SetTextInputRectEventArgs(int x, int y, int w, int h)
+            : x(x), y(y), w(w), h(h) {
+        }
+    };
+
     struct PhysFixedUpdateEventArgs : public EventArgs
     {
     };
