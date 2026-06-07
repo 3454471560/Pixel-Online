@@ -234,14 +234,14 @@ namespace Online::Render
 		inline void AddRenderText(
 			Online::Core::StateFlags<Online::Render::RenderLayer>  layerMask,
 			Online::Asset::FontID                                  fontID,
-			const std::string&                                     textStr,
+			const std::string& textStr,
 			Online::Render::RenderQueue                            renderQueue,
 			uint8_t                                                drawOrder,
 			uint8_t                                                depth,
-			const glm::vec2&                                       position,
+			const glm::vec2& position,
 			float                                                  scale,
 			float                                                  rotation,
-			const SDL_FPoint&                                      pivot,
+			const SDL_FPoint& pivot,
 			Online::Core::Color                                    color,
 			Core::Anchor                                           anchor,
 			float                                                  letterSpacing,
@@ -341,6 +341,7 @@ namespace Online::Render
 				cursorX += (static_cast<float>(advance) + spacing) * scale;
 			}
 		}
+
 
 	public:
 		void Execute(Online::Render::Renderer*);

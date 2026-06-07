@@ -89,7 +89,7 @@ namespace Online::Game
             TTF_Font* font = Online::Asset::GetFont(Font);
             return font ? TTF_FontHeight(font) : 0;
         }
-
+       
         inline void SetFont(Asset::FontID id) noexcept { Font = id; }
         inline void SetText(const std::string& txt) noexcept 
         { 
@@ -110,6 +110,7 @@ namespace Online::Game
         inline void SetVisible(bool v) noexcept { Visible = v; }
         inline void SetWidthLimit(float w) noexcept { WidthLimit = w; }
         inline void SetLetterSpacing(float spacing) noexcept { LetterSpacing = spacing; }
+      
     private:
         Asset::FontID   Font = Asset::FontID::Ipix;
         std::string     Text;

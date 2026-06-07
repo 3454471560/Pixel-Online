@@ -1032,7 +1032,9 @@ void Online::Runtime::Client::Render()
 				textComp.GetColor(),
 				textComp.GetAnchor(),
 				textComp.GetLetterSpacing(),
-				textComp.GetWidthLimit()
+				textComp.GetWidthLimit()/*,
+				textComp.GetPixelOffset(),
+				textComp.GetMaxPixelWidth()*/
 			);
 		}
 

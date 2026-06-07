@@ -11,7 +11,6 @@
 #include <Game/Common/FuncTable.h>
 #include <Input/Common/FuncTable.h>
 #include <Asset/Common/FuncTable.h>
-#include <algorithm>
 #include <functional>
 
 namespace Online::Script
@@ -36,89 +35,159 @@ namespace Online::Script
 
             std::string buffer;
             std::string compositionText;
+            int compositionStart = 0;
             bool focused = false;
             float cursorBlinkTimer = 0.0f;
             bool cursorVisible = true;
+            int cursorIndex = 0;
 
-            void SetOnTextChanged(std::function<void(Game::GameObject*, const std::string&)> callback)
-            {
+            void SetOnTextChanged(std::function<void(Game::GameObject*, const std::string&)> callback) {
                 onTextChanged = std::move(callback);
             }
-
-            void SetOnEnterPressed(std::function<void(Game::GameObject*, const std::string&)> callback)
-            {
+            void SetOnEnterPressed(std::function<void(Game::GameObject*, const std::string&)> callback) {
                 onEnterPressed = std::move(callback);
             }
 
-            void InsertText(const std::string& utf8)
-            {
-                if (utf8.empty()) return;
+            int TotalCodePoints() const {
+                return static_cast<int>(Core::Utf8ToUtf32(buffer).size() + Core::Utf8ToUtf32(compositionText).size());
+            }
 
-                std::u32string u32 = Online::Core::Utf8ToUtf32(utf8);
-                for (char32_t ch : u32)
-                {
-                    if (buffer.size() >= static_cast<size_t>(maxChars))
-                        break;
+            float GetCursorXOffset(float scale, float spacing, Online::Asset::FontID fontID) const {
+                std::u32string full32 = Core::Utf8ToUtf32(buffer + compositionText);
+                float x = 0.0f;
+                int count = (cursorIndex < static_cast<int>(full32.size())) ? cursorIndex : static_cast<int>(full32.size());
+                for (int i = 0; i < count; ++i) {
+                    int advance = Online::Asset::GetFontAtlasAdvance(fontID, full32[i]);
+                    x += (advance + spacing) * scale;
+                }
+                return x;
+            }
 
+            size_t CodePointIndexToByteOffset(const std::string& str, int cpIndex) const {
+                size_t byteOffset = 0;
+                int cpCount = 0;
+                const char* ptr = str.data();
+                while (cpCount < cpIndex && byteOffset < str.size()) {
+                    unsigned char c = static_cast<unsigned char>(ptr[byteOffset]);
+                    if ((c & 0x80) == 0x00) byteOffset += 1;
+                    else if ((c & 0xE0) == 0xC0) byteOffset += 2;
+                    else if ((c & 0xF0) == 0xE0) byteOffset += 3;
+                    else if ((c & 0xF8) == 0xF0) byteOffset += 4;
+                    else break;
+                    ++cpCount;
+                }
+                return byteOffset;
+            }
+
+            void InsertTextAt(int insertCp, const std::string& utf8) {
+                std::u32string u32 = Core::Utf8ToUtf32(utf8);
+                std::string newBuffer;
+                size_t byteIns = CodePointIndexToByteOffset(buffer, insertCp);
+                newBuffer = buffer.substr(0, byteIns);
+                for (char32_t ch : u32) {
+                    if (static_cast<int>(Core::Utf8ToUtf32(newBuffer).size()) >= maxChars) break;
                     char temp[4];
-                    size_t len = Online::Core::CodepointToUtf8(ch, temp);
-                    buffer.append(temp, len);
+                    size_t len = Core::CodepointToUtf8(ch, temp);
+                    newBuffer.append(temp, len);
                 }
+                newBuffer += buffer.substr(byteIns);
+                buffer = newBuffer;
+                cursorIndex = insertCp + static_cast<int>(u32.size());
+            }
+
+            void InsertText(const std::string& utf8) {
+                if (utf8.empty()) return;
+                int insertPos = cursorIndex;
+                if (!compositionText.empty()) insertPos = compositionStart;
+                InsertTextAt(insertPos, utf8);
                 compositionText.clear();
+                compositionStart = cursorIndex;
                 RefreshDisplay();
                 NotifyChange();
             }
 
-            void DeleteBack()
-            {
-                if (buffer.empty()) return;
-                auto it = buffer.end();
-                while (it != buffer.begin())
-                {
-                    --it;
-                    if ((*it & 0xC0) != 0x80) break;
+            void DeleteBack() {
+                if (cursorIndex <= 0) return;
+                if (!compositionText.empty()) {
+                    compositionText.clear();
+                    cursorIndex = compositionStart;
+                    RefreshDisplay();
+                    NotifyChange();
+                    return;
                 }
-                buffer.erase(it, buffer.end());
+                int delPos = cursorIndex - 1;
+                size_t byteStart = CodePointIndexToByteOffset(buffer, delPos);
+                size_t byteEnd = CodePointIndexToByteOffset(buffer, cursorIndex);
+                buffer.erase(byteStart, byteEnd - byteStart);
+                cursorIndex = delPos;
+                compositionStart = cursorIndex;
                 RefreshDisplay();
                 NotifyChange();
             }
 
-            void Clear()
-            {
+            void DeleteForward() {
+                int totalBuf = static_cast<int>(Core::Utf8ToUtf32(buffer).size());
+                if (cursorIndex >= totalBuf && compositionText.empty()) return;
+                if (!compositionText.empty()) {
+                    compositionText.clear();
+                    cursorIndex = compositionStart;
+                    RefreshDisplay();
+                    NotifyChange();
+                    return;
+                }
+                int delPos = cursorIndex;
+                size_t byteStart = CodePointIndexToByteOffset(buffer, delPos);
+                size_t byteEnd = CodePointIndexToByteOffset(buffer, delPos + 1);
+                buffer.erase(byteStart, byteEnd - byteStart);
+                compositionStart = cursorIndex;
+                RefreshDisplay();
+                NotifyChange();
+            }
+
+            void Clear() {
                 buffer.clear();
                 compositionText.clear();
+                cursorIndex = 0;
+                compositionStart = 0;
                 RefreshDisplay();
                 NotifyChange();
             }
 
-            void SetText(const std::string& text)
-            {
+            void SetText(const std::string& text) {
                 buffer = text.substr(0, maxChars);
                 compositionText.clear();
+                cursorIndex = static_cast<int>(Core::Utf8ToUtf32(buffer).size());
+                compositionStart = cursorIndex;
                 RefreshDisplay();
             }
 
         private:
-            void RefreshDisplay()
-            {
+            void RefreshDisplay() {
                 if (!textComp) return;
-                std::string displayStr = buffer;
-                if (focused && !compositionText.empty())
-                    displayStr += compositionText;
+                std::string displayStr;
+                if (focused && !compositionText.empty()) {
+                    int startCp = compositionStart;
+                    std::u32string buf32 = Core::Utf8ToUtf32(buffer);
+                    if (startCp > static_cast<int>(buf32.size())) startCp = static_cast<int>(buf32.size());
+                    size_t byteOff = CodePointIndexToByteOffset(buffer, startCp);
+                    std::string part1 = buffer.substr(0, byteOff);
+                    std::string part2 = buffer.substr(byteOff);
+                    displayStr = part1 + compositionText + part2;
+                }
+                else {
+                    displayStr = buffer;
+                }
                 if (displayStr.empty() && !focused)
                     textComp->SetText(placeholder);
                 else
                     textComp->SetText(displayStr);
             }
 
-            void NotifyChange()
-            {
+            void NotifyChange() {
                 if (onTextChanged && textComp)
                     onTextChanged(textComp->gameObject, buffer);
             }
-
-            void NotifyEnter()
-            {
+            void NotifyEnter() {
                 if (onEnterPressed && textComp)
                     onEnterPressed(textComp->gameObject, buffer);
             }
@@ -133,17 +202,15 @@ namespace Online::Script
             if (!data) return;
 
             data->uiCamera = Game::FindGameObjectByTag("UICamera");
-            if (!data->uiCamera)
-                throw std::runtime_error("当前场景无UI摄像机");
-
+            if (!data->uiCamera) throw std::runtime_error("当前场景无UI摄像机");
             data->textComp = go->GetComponent<Game::Text>();
-            if (!data->textComp)
-                throw std::runtime_error("TextInput 需要挂载 Text 组件");
-
+            if (!data->textComp) throw std::runtime_error("TextInput 需要挂载 Text 组件");
             data->background = go->GetComponent<Game::Sprite>();
             if (auto* cursorObj = Game::FindGameObjectByName("Cursor"))
                 data->cursor = cursorObj->GetComponent<Game::Sprite>();
 
+            data->cursorIndex = static_cast<int>(Core::Utf8ToUtf32(data->buffer + data->compositionText).size());
+            data->compositionStart = data->cursorIndex;
             data->RefreshDisplay();
             if (data->cursor) data->cursor->OnDisable();
         }
@@ -160,37 +227,30 @@ namespace Online::Script
                 + data->uiCamera->GetComponent<Game::Transform>()->GetWorldPosition();
 
             SDL_FRect hitRect;
-            if (bg)
-                hitRect = bg->GetDstRect(trans->GetWorldPosition(), trans->GetWorldScale());
-            else
-                hitRect = { trans->GetWorldPosition().x, trans->GetWorldPosition().y, 200.0f, 50.0f };
+            if (bg) hitRect = bg->GetDstRect(trans->GetWorldPosition(), trans->GetWorldScale());
+            else    hitRect = { trans->GetWorldPosition().x, trans->GetWorldPosition().y, 200.0f, 50.0f };
 
-            if (data->focused)
-            {
+            if (data->focused) {
                 auto* camTrans = data->uiCamera->GetComponent<Game::Transform>();
-                if (camTrans)
-                {
+                if (camTrans) {
                     glm::vec2 screenPos = trans->GetWorldPosition() - glm::vec2(camTrans->GetWorldPosition());
-                    Input::SetTextInputRect(
-                        static_cast<int>(screenPos.x),
-                        static_cast<int>(screenPos.y),
+                    Input::SetTextInputRect(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
                         static_cast<int>(hitRect.w * trans->GetWorldScale().x),
                         static_cast<int>(hitRect.h * trans->GetWorldScale().y));
                 }
             }
 
-            if (Input::GetKeyPressed(Input::KeyCode::Mouse0))
-            {
+            if (Input::GetKeyPressed(Input::KeyCode::Mouse0)) {
                 bool inside = PointInRect(mousePos, hitRect);
-                if (inside && !data->focused)
-                {
+                if (inside && !data->focused) {
                     data->focused = true;
                     Input::StartTextInput();
                     data->compositionText.clear();
+                    data->cursorIndex = static_cast<int>(Core::Utf8ToUtf32(data->buffer).size());
+                    data->compositionStart = data->cursorIndex;
                     data->RefreshDisplay();
                 }
-                else if (!inside && data->focused)
-                {
+                else if (!inside && data->focused) {
                     data->focused = false;
                     Input::StopTextInput();
                     data->compositionText.clear();
@@ -198,85 +258,78 @@ namespace Online::Script
                 }
             }
 
-            if (data->focused)
-            {
+            if (data->focused) {
                 std::string inputStr = Input::GetTextInputBuffer();
-                if (!inputStr.empty())
+                if (!inputStr.empty()) {
                     data->InsertText(inputStr);
+                    data->compositionText.clear();
+                    data->compositionStart = data->cursorIndex;
+                }
 
                 std::string comp = Input::GetCompositionText();
-                if (comp != data->compositionText)
-                {
+                if (comp != data->compositionText) {
+                    if (data->compositionText.empty() && !comp.empty())
+                        data->compositionStart = data->cursorIndex;
                     data->compositionText = comp;
+                    if (!comp.empty())
+                        data->cursorIndex = data->compositionStart + static_cast<int>(Core::Utf8ToUtf32(comp).size());
+                    else
+                        data->cursorIndex = data->compositionStart;
                     data->RefreshDisplay();
                 }
 
-                if (Input::GetKeyPressed(Input::KeyCode::Backspace))
-                    data->DeleteBack();
-                if (Input::GetKeyPressed(Input::KeyCode::Delete))
-                    data->Clear();
-
-                if (Input::GetKeyPressed(Input::KeyCode::Enter))
-                {
-                    data->NotifyEnter();
+                if (data->compositionText.empty()) {
+                    if (Input::GetKeyPressed(Input::KeyCode::Left) && data->cursorIndex > 0) {
+                        --data->cursorIndex;
+                        data->compositionStart = data->cursorIndex;
+                        data->cursorBlinkTimer = 0.0f;
+                        data->cursorVisible = true;
+                    }
+                    if (Input::GetKeyPressed(Input::KeyCode::Right)) {
+                        int total = data->TotalCodePoints();
+                        if (data->cursorIndex < total) {
+                            ++data->cursorIndex;
+                            data->compositionStart = data->cursorIndex;
+                            data->cursorBlinkTimer = 0.0f;
+                            data->cursorVisible = true;
+                        }
+                    }
                 }
+
+                if (Input::GetKeyPressed(Input::KeyCode::Backspace)) data->DeleteBack();
+                if (Input::GetKeyPressed(Input::KeyCode::Delete)) data->DeleteForward();
+                if (Input::GetKeyPressed(Input::KeyCode::Enter)) data->NotifyEnter();
             }
 
-            if (data->cursor)
-            {
-                if (data->focused)
-                {
+            // 光标定位（使用左上角为参考点，无滚动）
+            if (data->cursor) {
+                if (data->focused) {
                     data->cursorBlinkTimer += dt;
-                    if (data->cursorBlinkTimer >= 0.53f)
-                    {
+                    if (data->cursorBlinkTimer >= 0.53f) {
                         data->cursorBlinkTimer = 0.0f;
                         data->cursorVisible = !data->cursorVisible;
                     }
                     data->cursorVisible ? data->cursor->OnEnable() : data->cursor->OnDisable();
 
-                    if (data->textComp)
-                    {
-                        glm::vec2 basePos = trans->GetWorldPosition() + data->textComp->GetOffset();
+                    if (data->textComp) {
+                        // 文本起始位置 = 世界坐标 + 偏移（左上角）
+                        glm::vec2 textStartPos = trans->GetWorldPosition() + data->textComp->GetOffset();
+
                         float scale = trans->GetWorldScale().x;
                         auto fontID = data->textComp->GetFont();
                         float spacing = data->textComp->GetLetterSpacing();
-                        Core::Anchor anchor = data->textComp->GetAnchor();
-
-                        std::u32string buf32 = Online::Core::Utf8ToUtf32(data->buffer);
-                        std::u32string comp32 = Online::Core::Utf8ToUtf32(data->compositionText);
-                        float bufWidth = 0.0f, compWidth = 0.0f;
-                        for (char32_t ch : buf32)
-                            bufWidth += (Asset::GetFontAtlasAdvance(fontID, ch) + spacing) * scale;
-                        for (char32_t ch : comp32)
-                            compWidth += (Asset::GetFontAtlasAdvance(fontID, ch) + spacing) * scale;
-                        float totalWidth = bufWidth + compWidth;
-
                         float lineHeight = static_cast<float>(data->textComp->GetFontHeight()) * scale;
 
-                        glm::vec2 anchorOffset(0.0f);
-                        switch (anchor)
-                        {
-                            using enum Core::Anchor;
-                        case TopLeft:      anchorOffset = { 0.0f, 0.0f }; break;
-                        case TopRight:     anchorOffset = { totalWidth, 0.0f }; break;
-                        case BottomLeft:   anchorOffset = { 0.0f, lineHeight }; break;
-                        case BottomRight:  anchorOffset = { totalWidth, lineHeight }; break;
-                        case Center:       anchorOffset = { totalWidth * 0.5f, lineHeight * 0.5f }; break;
-                        default: break;
-                        }
-                        glm::vec2 textStartPos = basePos - anchorOffset;
-
+                        float cursorXOffset = data->GetCursorXOffset(scale, spacing, fontID);
                         glm::vec2 cursorPos = textStartPos;
-                        cursorPos.x += totalWidth + 2.0f;
-                        cursorPos.y += lineHeight * 0.5f;
+                        cursorPos.x += cursorXOffset;
+                        cursorPos.y += lineHeight * 0.5f; // 垂直居中
 
-                        if (auto* cursorTrans = data->cursor->gameObject->GetTransform())
-                        {
+                        if (auto* cursorTrans = data->cursor->gameObject->GetTransform()) {
                             cursorTrans->SetWorldPosition(cursorPos);
                             float texH = 1.0f;
-                            SDL_Texture* cursorTex = Asset::GetTexture(data->cursor->GetTexture());
-                            if (cursorTex)
-                            {
+                            SDL_Texture* cursorTex = Online::Asset::GetTexture(data->cursor->GetTexture());
+                            if (cursorTex) {
                                 int w, h; SDL_QueryTexture(cursorTex, nullptr, nullptr, &w, &h);
                                 texH = static_cast<float>(h);
                             }
@@ -284,15 +337,13 @@ namespace Online::Script
                         }
                     }
                 }
-                else
-                {
+                else {
                     data->cursor->OnDisable();
                 }
             }
         }
 
-        static ScriptFunctionInfo Information()
-        {
+        static ScriptFunctionInfo Information() {
             return {
                 ID, sizeof(TextInputData),
                 TextInputData_Construct, TextInputData_Destruct,

@@ -166,6 +166,9 @@ bool Online::Game::GameWorld::Initialize()
 	Transform* inputTrans = inputObj->GetTransform();
 	inputTrans->SetLocalPosition({ 300, 200 });
 	inputTrans->SetLocalScale({ 1, 1 });
+	Sprite& inputBk = inputObj->AddComponent<Sprite>();
+	inputBk.SetTexture(Asset::TextureID::Tex_Flag);
+	inputBk.SetAnchor(Core::Anchor::TopLeft);
 
 	GameObject* textCursor = activeScene->CreateGameObject("Cursor");
 	textCursor->SetLayer(Render::RenderLayer::UI);
@@ -174,7 +177,7 @@ bool Online::Game::GameWorld::Initialize()
 	Text& inputText = inputObj->AddComponent<Text>();
 	inputText.SetFont(Asset::FontID::Ipix);
 	inputText.SetRenderQueue(Render::RenderQueue::UI);
-	inputText.SetAnchor(Core::Anchor::Center);
+	inputText.SetAnchor(Core::Anchor::TopLeft);
 
 	inputObj->AddScriptFunction(Script::ScriptFunctionID::TextInput);
 	auto* inputData = inputObj->GetScriptData<Script::TextInput::TextInputData>(Script::ScriptFunctionID::TextInput);
@@ -193,7 +196,7 @@ bool Online::Game::GameWorld::Initialize()
 	GameObject* UICanvas = activeScene->CreateGameObject("Canvas");
 	Sprite& uisprite = UICanvas->AddComponent<Sprite>();
 	uisprite.SetTexture(Asset::TextureID::Tex_BackBuffer_1);
-	uisprite.SetAnchor(Core::Anchor::Center);
+	uisprite.SetAnchor(Core::Anchor::TopLeft);
 	UICanvas->AddScriptFunction(Script::ScriptFunctionID::FollowOverTime);
 	UICanvas->GetScriptData<Script::Follow::FollowData>(Script::ScriptFunctionID::FollowOverTime)->SetTarget(mainCamera->GetComponent<Transform>());
 	return true;
