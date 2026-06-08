@@ -57,10 +57,87 @@ namespace Online::Script
                 float x = 0.0f;
                 int count = (cursorIndex < static_cast<int>(full32.size())) ? cursorIndex : static_cast<int>(full32.size());
                 for (int i = 0; i < count; ++i) {
-                    int advance = Online::Asset::GetFontAtlasAdvance(fontID, full32[i]);
-                    x += (advance + spacing) * scale;
+                    char32_t ch = full32[i];
+                    int advance;
+
+                    if (ch == U' ') {
+                        advance = Online::Asset::GetFontAtlasAdvance(fontID, U'n');
+                        if (advance <= 0) advance = static_cast<int>(Online::Asset::GetFontSize(fontID) * 0.5f);
+                    }
+                    else if (ch == U'　') {
+                        advance = Online::Asset::GetFontAtlasAdvance(fontID, U'一');
+                        if (advance <= 0) advance = Online::Asset::GetFontSize(fontID);
+                    }
+                    else {
+                        advance = Online::Asset::GetFontAtlasAdvance(fontID, ch);
+                    }
+
+                    x += (static_cast<float>(advance) + spacing) * scale;
                 }
                 return x;
+            }
+
+            void CalculateTextSize(const std::string& text, float scale, float spacing,
+                Online::Asset::FontID fontID, float& outWidth, float& outHeight, int& outLines) const
+            {
+                std::u32string u32text = Core::Utf8ToUtf32(text);
+                const int cellSize = Online::Asset::GetFontSize(fontID);
+                const float lineHeight = static_cast<float>(cellSize) * scale;
+
+                int numLines = 1;
+                float maxLineWidth = 0.0f;
+                float currentLineWidth = 0.0f;
+
+                for (const char32_t ch : u32text)
+                {
+                    if (ch == U'\n')
+                    {
+                        maxLineWidth = maxLineWidth > currentLineWidth ? maxLineWidth : currentLineWidth;
+                        currentLineWidth = 0.0f;
+                        ++numLines;
+                        continue;
+                    }
+
+                    int advance;
+                    if (ch == U' ') {
+                        advance = Online::Asset::GetFontAtlasAdvance(fontID, U'n');
+                        if (advance <= 0) advance = static_cast<int>(cellSize * 0.5f);
+                    }
+                    else if (ch == U'　') {
+                        advance = Online::Asset::GetFontAtlasAdvance(fontID, U'一');
+                        if (advance <= 0) advance = cellSize;
+                    }
+                    else {
+                        advance = Online::Asset::GetFontAtlasAdvance(fontID, ch);
+                    }
+
+                    currentLineWidth += (static_cast<float>(advance) + spacing) * scale;
+                }
+                maxLineWidth = maxLineWidth > currentLineWidth ? maxLineWidth : currentLineWidth;
+
+                outWidth = maxLineWidth;
+                outHeight = static_cast<float>(numLines) * lineHeight;
+                outLines = numLines;
+            }
+
+            glm::vec2 CalculateAnchorOffset(Core::Anchor anchor, float totalWidth, float totalHeight) const
+            {
+                glm::vec2 anchorOffset{ 0.0f, 0.0f };
+                switch (anchor)
+                {
+                    using enum Core::Anchor;
+                case TopLeft:      anchorOffset = { 0.0f, 0.0f };                               break;
+                case TopCenter:    anchorOffset = { totalWidth * 0.5f, 0.0f };                  break;
+                case TopRight:     anchorOffset = { totalWidth, 0.0f };                         break;
+                case CenterLeft:   anchorOffset = { 0.0f, totalHeight * 0.5f };                 break;
+                case Center:       anchorOffset = { totalWidth * 0.5f, totalHeight * 0.5f };    break;
+                case CenterRight:  anchorOffset = { totalWidth, totalHeight * 0.5f };           break;
+                case BottomLeft:   anchorOffset = { 0.0f, totalHeight };                        break;
+                case BottomCenter: anchorOffset = { totalWidth * 0.5f, totalHeight };           break;
+                case BottomRight:  anchorOffset = { totalWidth, totalHeight };                  break;
+                default: break;
+                }
+                return anchorOffset;
             }
 
             size_t CodePointIndexToByteOffset(const std::string& str, int cpIndex) const {
@@ -199,12 +276,17 @@ namespace Online::Script
         static void TextInputData_OnEnable(Game::GameObject* go)
         {
             auto* data = go->GetScriptData<TextInputData>(ID);
-            if (!data) return;
+            if (!data) 
+                return;
 
             data->uiCamera = Game::FindGameObjectByTag("UICamera");
-            if (!data->uiCamera) throw std::runtime_error("当前场景无UI摄像机");
+            if (!data->uiCamera) 
+                throw std::runtime_error("当前场景无UI摄像机");
+
             data->textComp = go->GetComponent<Game::Text>();
-            if (!data->textComp) throw std::runtime_error("TextInput 需要挂载 Text 组件");
+            if (!data->textComp) 
+                throw std::runtime_error("TextInput 需要挂载 Text 组件");
+
             data->background = go->GetComponent<Game::Sprite>();
             if (auto* cursorObj = Game::FindGameObjectByName("Cursor"))
                 data->cursor = cursorObj->GetComponent<Game::Sprite>();
@@ -212,7 +294,8 @@ namespace Online::Script
             data->cursorIndex = static_cast<int>(Core::Utf8ToUtf32(data->buffer + data->compositionText).size());
             data->compositionStart = data->cursorIndex;
             data->RefreshDisplay();
-            if (data->cursor) data->cursor->OnDisable();
+            if (data->cursor)
+                data->cursor->OnDisable();
         }
 
         static void TextInputData_Update(Game::GameObject* self, float dt)
@@ -230,9 +313,11 @@ namespace Online::Script
             if (bg) hitRect = bg->GetDstRect(trans->GetWorldPosition(), trans->GetWorldScale());
             else    hitRect = { trans->GetWorldPosition().x, trans->GetWorldPosition().y, 200.0f, 50.0f };
 
-            if (data->focused) {
+            if (data->focused) 
+            {
                 auto* camTrans = data->uiCamera->GetComponent<Game::Transform>();
-                if (camTrans) {
+                if (camTrans) 
+                {
                     glm::vec2 screenPos = trans->GetWorldPosition() - glm::vec2(camTrans->GetWorldPosition());
                     Input::SetTextInputRect(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
                         static_cast<int>(hitRect.w * trans->GetWorldScale().x),
@@ -240,9 +325,11 @@ namespace Online::Script
                 }
             }
 
-            if (Input::GetKeyPressed(Input::KeyCode::Mouse0)) {
+            if (Input::GetKeyPressed(Input::KeyCode::Mouse0)) 
+            {
                 bool inside = PointInRect(mousePos, hitRect);
-                if (inside && !data->focused) {
+                if (inside && !data->focused) 
+                {
                     data->focused = true;
                     Input::StartTextInput();
                     data->compositionText.clear();
@@ -250,7 +337,8 @@ namespace Online::Script
                     data->compositionStart = data->cursorIndex;
                     data->RefreshDisplay();
                 }
-                else if (!inside && data->focused) {
+                else if (!inside && data->focused) 
+                {
                     data->focused = false;
                     Input::StopTextInput();
                     data->compositionText.clear();
@@ -258,7 +346,8 @@ namespace Online::Script
                 }
             }
 
-            if (data->focused) {
+            if (data->focused) 
+            {
                 std::string inputStr = Input::GetTextInputBuffer();
                 if (!inputStr.empty()) {
                     data->InsertText(inputStr);
@@ -267,7 +356,8 @@ namespace Online::Script
                 }
 
                 std::string comp = Input::GetCompositionText();
-                if (comp != data->compositionText) {
+                if (comp != data->compositionText) 
+                {
                     if (data->compositionText.empty() && !comp.empty())
                         data->compositionStart = data->cursorIndex;
                     data->compositionText = comp;
@@ -278,16 +368,20 @@ namespace Online::Script
                     data->RefreshDisplay();
                 }
 
-                if (data->compositionText.empty()) {
-                    if (Input::GetKeyPressed(Input::KeyCode::Left) && data->cursorIndex > 0) {
+                if (data->compositionText.empty()) 
+                {
+                    if (Input::GetKeyPressed(Input::KeyCode::Left) && data->cursorIndex > 0) 
+                    {
                         --data->cursorIndex;
                         data->compositionStart = data->cursorIndex;
                         data->cursorBlinkTimer = 0.0f;
                         data->cursorVisible = true;
                     }
-                    if (Input::GetKeyPressed(Input::KeyCode::Right)) {
+                    if (Input::GetKeyPressed(Input::KeyCode::Right)) 
+                    {
                         int total = data->TotalCodePoints();
-                        if (data->cursorIndex < total) {
+                        if (data->cursorIndex < total) 
+                        {
                             ++data->cursorIndex;
                             data->compositionStart = data->cursorIndex;
                             data->cursorBlinkTimer = 0.0f;
@@ -301,35 +395,63 @@ namespace Online::Script
                 if (Input::GetKeyPressed(Input::KeyCode::Enter)) data->NotifyEnter();
             }
 
-            // 光标定位（使用左上角为参考点，无滚动）
-            if (data->cursor) {
-                if (data->focused) {
+            if (data->cursor) 
+            {
+                if (data->focused) 
+                {
                     data->cursorBlinkTimer += dt;
-                    if (data->cursorBlinkTimer >= 0.53f) {
+                    if (data->cursorBlinkTimer >= 0.53f) 
+                    {
                         data->cursorBlinkTimer = 0.0f;
                         data->cursorVisible = !data->cursorVisible;
                     }
                     data->cursorVisible ? data->cursor->OnEnable() : data->cursor->OnDisable();
 
-                    if (data->textComp) {
-                        // 文本起始位置 = 世界坐标 + 偏移（左上角）
-                        glm::vec2 textStartPos = trans->GetWorldPosition() + data->textComp->GetOffset();
-
+                    if (data->textComp) 
+                    {
+                        glm::vec2 worldPos = trans->GetWorldPosition();
+                        glm::vec2 textOffset = data->textComp->GetOffset();
                         float scale = trans->GetWorldScale().x;
                         auto fontID = data->textComp->GetFont();
                         float spacing = data->textComp->GetLetterSpacing();
-                        float lineHeight = static_cast<float>(data->textComp->GetFontHeight()) * scale;
+                        Core::Anchor anchor = data->textComp->GetAnchor();
+                        const int cellSize = Online::Asset::GetFontSize(fontID);
+                        const float lineHeight = static_cast<float>(cellSize) * scale;
+
+                        std::string displayText;
+                        if (!data->compositionText.empty()) 
+                        {
+                            int startCp = data->compositionStart;
+                            size_t byteOff = data->CodePointIndexToByteOffset(data->buffer, startCp);
+                            displayText = data->buffer.substr(0, byteOff) + data->compositionText + data->buffer.substr(byteOff);
+                        }
+                        else 
+                        {
+                            displayText = data->buffer;
+                        }
+
+                        float textWidth, textHeight;
+                        int numLines;
+                        data->CalculateTextSize(displayText, scale, spacing, fontID, textWidth, textHeight, numLines);
+
+                        glm::vec2 anchorOffset = data->CalculateAnchorOffset(anchor, textWidth, textHeight);
+
+                        glm::vec2 textTopLeft = worldPos + textOffset - anchorOffset;
 
                         float cursorXOffset = data->GetCursorXOffset(scale, spacing, fontID);
-                        glm::vec2 cursorPos = textStartPos;
-                        cursorPos.x += cursorXOffset;
-                        cursorPos.y += lineHeight * 0.5f; // 垂直居中
+                        float cursorYOffset = lineHeight * 0.5f;
 
-                        if (auto* cursorTrans = data->cursor->gameObject->GetTransform()) {
+                        glm::vec2 cursorPos = textTopLeft;
+                        cursorPos.x += cursorXOffset;
+                        cursorPos.y += cursorYOffset;
+
+                        if (auto* cursorTrans = data->cursor->gameObject->GetTransform()) 
+                        {
                             cursorTrans->SetWorldPosition(cursorPos);
                             float texH = 1.0f;
                             SDL_Texture* cursorTex = Online::Asset::GetTexture(data->cursor->GetTexture());
-                            if (cursorTex) {
+                            if (cursorTex) 
+                            {
                                 int w, h; SDL_QueryTexture(cursorTex, nullptr, nullptr, &w, &h);
                                 texH = static_cast<float>(h);
                             }
@@ -337,7 +459,8 @@ namespace Online::Script
                         }
                     }
                 }
-                else {
+                else 
+                {
                     data->cursor->OnDisable();
                 }
             }

@@ -126,12 +126,17 @@ namespace Online::Game
         {
             switch (RenderAnchor)
             {
-            case Core::Anchor::TopLeft:     return { 0.0f, 0.0f };
-            case Core::Anchor::TopRight:    return { 1.0f, 0.0f };
-            case Core::Anchor::BottomLeft:  return { 0.0f, 1.0f };
-            case Core::Anchor::BottomRight: return { 1.0f, 1.0f };
-            case Core::Anchor::Center:
-            default:                  return { 0.5f, 0.5f };
+                using enum Core::Anchor;
+            case TopLeft:      return { 0.0f, 0.0f };
+            case TopCenter:    return { 0.5f, 0.0f };
+            case TopRight:     return { 1.0f, 0.0f };
+            case CenterLeft:   return { 0.0f, 0.5f };
+            case Center:       return { 0.5f, 0.5f };
+            case CenterRight:  return { 1.0f, 0.5f };
+            case BottomLeft:   return { 0.0f, 1.0f };
+            case BottomCenter: return { 0.5f, 1.0f };
+            case BottomRight:  return { 1.0f, 1.0f };
+            default:           return { 0.5f, 0.5f };
             }
         }
         inline const SDL_FRect GetDstRect(glm::vec2 worldPos, glm::vec2 worldScale) const

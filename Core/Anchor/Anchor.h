@@ -6,9 +6,13 @@ namespace Online::Core
     enum class Anchor : uint8_t
     {
         TopLeft,
+        TopCenter,
         TopRight,
         BottomLeft,
+		BottomCenter,
         BottomRight,
-        Center
+        Center,
+		CenterLeft,
+		CenterRight
     };
 }

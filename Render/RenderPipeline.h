@@ -131,106 +131,6 @@ namespace Online::Render
 			);
 		}
 
-		inline void AddRenderText(const RenderText& text)
-		{
-			SDL_Texture* atlasTex = Asset::GetTexture(text.fontID);
-			if (!atlasTex) return;
-
-			const int cellSize = static_cast<int>(Asset::GetFontSize(text.fontID));
-			const int cellW = cellSize;
-			const int cellH = cellSize;
-			if (cellW <= 0 || cellH <= 0) return;
-
-			std::u32string u32text = Online::Core::Utf8ToUtf32(text.text);
-			const float scale = text.scale;
-			const float lineHeight = cellH * scale;
-			const float spacing = text.LetterSpacing;
-
-			int numLines = 1;
-			float maxLineWidth = 0.0f;
-			float currentLineWidth = 0.0f;
-
-			for (char32_t ch : u32text)
-			{
-				if (ch == U'\n')
-				{
-					maxLineWidth = maxLineWidth > currentLineWidth ? maxLineWidth : currentLineWidth;
-					currentLineWidth = 0.0f;
-					numLines++;
-					continue;
-				}
-
-				int advance = Asset::GetFontAtlasAdvance(text.fontID, ch);
-				currentLineWidth += (advance + spacing) * scale;
-			}
-			maxLineWidth = maxLineWidth > currentLineWidth ? maxLineWidth : currentLineWidth;
-
-			float totalWidth = maxLineWidth;
-			float totalHeight = numLines * lineHeight;
-
-			glm::vec2 anchorOffset{ 0.0f, 0.0f };
-			switch (text.Anchor)
-			{
-				using enum Core::Anchor;
-			case TopLeft:      anchorOffset = { 0.0f, 0.0f }; break;
-			case TopRight:     anchorOffset = { totalWidth, 0.0f }; break;
-			case BottomLeft:   anchorOffset = { 0.0f, totalHeight }; break;
-			case BottomRight:  anchorOffset = { totalWidth, totalHeight }; break;
-			case Center:       anchorOffset = { totalWidth * 0.5f, totalHeight * 0.5f }; break;
-			default: break;
-			}
-
-			float startX = text.position.x - anchorOffset.x;
-			float startY = text.position.y - anchorOffset.y;
-
-			float cursorX = startX;
-			float cursorY = startY;
-			uint8_t baseDrawOrder = text.DrawOrder;
-
-			for (char32_t ch : u32text)
-			{
-				if (ch == U'\n')
-				{
-					cursorX = startX;
-					cursorY += lineHeight;
-					continue;
-				}
-
-				SDL_Rect srcRect = Asset::GetFontAtlasSrcRect(text.fontID, ch);
-				if (srcRect.w == 0)
-				{
-					srcRect = Asset::GetFontAtlasSrcRect(text.fontID, U'?');
-					if (srcRect.w == 0) continue;
-				}
-
-				int advance = Asset::GetFontAtlasAdvance(text.fontID, ch);
-
-				srcRect.w = advance;
-
-				SDL_FRect dstRect;
-				dstRect.x = cursorX;
-				dstRect.y = cursorY;
-				dstRect.w = advance * scale;
-				dstRect.h = lineHeight;
-
-				AddRenderItem(
-					text.LayerMask,
-					Asset::FontIDToTextureID(text.fontID),
-					text.RenderQueueType,
-					srcRect,
-					dstRect,
-					baseDrawOrder,
-					text.Depth,
-					text.Rotation,
-					text.Pivot,
-					SDL_FLIP_NONE,
-					text.Color
-				);
-
-				cursorX += (advance + spacing) * scale;
-			}
-		}
-
 		inline void AddRenderText(
 			Online::Core::StateFlags<Online::Render::RenderLayer>  layerMask,
 			Online::Asset::FontID                                  fontID,
@@ -284,11 +184,15 @@ namespace Online::Render
 			switch (anchor)
 			{
 				using enum Core::Anchor;
-			case TopLeft:      anchorOffset = { 0.0f, 0.0f };               break;
-			case TopRight:     anchorOffset = { totalWidth, 0.0f };         break;
-			case BottomLeft:   anchorOffset = { 0.0f, totalHeight };        break;
-			case BottomRight:  anchorOffset = { totalWidth, totalHeight };  break;
-			case Center:       anchorOffset = { totalWidth * 0.5f, totalHeight * 0.5f }; break;
+			case TopLeft:      anchorOffset = { 0.0f, 0.0f };                               break;
+			case TopCenter:    anchorOffset = { totalWidth * 0.5f, 0.0f };                  break;
+			case TopRight:     anchorOffset = { totalWidth, 0.0f };                         break;
+			case CenterLeft:   anchorOffset = { 0.0f, totalHeight * 0.5f };                 break;
+			case Center:       anchorOffset = { totalWidth * 0.5f, totalHeight * 0.5f };    break;
+			case CenterRight:  anchorOffset = { totalWidth, totalHeight * 0.5f };           break;
+			case BottomLeft:   anchorOffset = { 0.0f, totalHeight };                        break;
+			case BottomCenter: anchorOffset = { totalWidth * 0.5f, totalHeight };           break;
+			case BottomRight:  anchorOffset = { totalWidth, totalHeight };                  break;
 			default: break;
 			}
 
@@ -305,6 +209,19 @@ namespace Online::Render
 				{
 					cursorX = startX;
 					cursorY += lineHeight;
+					continue;
+				}
+
+				if (ch == U' ')
+				{
+					const int advance = Asset::GetFontAtlasAdvance(fontID, U'n');
+					cursorX += (static_cast<float>(advance) + spacing) * scale;
+					continue;
+				}
+				if (ch == U'¡¡')
+				{
+					const int advance = Asset::GetFontAtlasAdvance(fontID, U'Ò»');
+					cursorX += (static_cast<float>(advance) + spacing) * scale;
 					continue;
 				}
 

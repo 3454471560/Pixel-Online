@@ -168,7 +168,7 @@ bool Online::Game::GameWorld::Initialize()
 	inputTrans->SetLocalScale({ 1, 1 });
 	Sprite& inputBk = inputObj->AddComponent<Sprite>();
 	inputBk.SetTexture(Asset::TextureID::Tex_Flag);
-	inputBk.SetAnchor(Core::Anchor::TopLeft);
+	inputBk.SetAnchor(Core::Anchor::CenterLeft);
 
 	GameObject* textCursor = activeScene->CreateGameObject("Cursor");
 	textCursor->SetLayer(Render::RenderLayer::UI);
@@ -177,7 +177,8 @@ bool Online::Game::GameWorld::Initialize()
 	Text& inputText = inputObj->AddComponent<Text>();
 	inputText.SetFont(Asset::FontID::Ipix);
 	inputText.SetRenderQueue(Render::RenderQueue::UI);
-	inputText.SetAnchor(Core::Anchor::TopLeft);
+	inputText.SetAnchor(Core::Anchor::CenterLeft);
+	inputText.SetWidthLimit(144);
 
 	inputObj->AddScriptFunction(Script::ScriptFunctionID::TextInput);
 	auto* inputData = inputObj->GetScriptData<Script::TextInput::TextInputData>(Script::ScriptFunctionID::TextInput);
