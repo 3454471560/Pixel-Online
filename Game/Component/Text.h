@@ -71,26 +71,68 @@ namespace Online::Game
         }
 
     public:
-        inline Asset::FontID GetFont() const noexcept { return Font; }
-        inline const std::string& GetText() const noexcept { return Text; }
-        inline Render::RenderQueue GetRenderQueue() const noexcept { return RenderQueueType; }
-        inline uint8_t GetDrawOrder() const noexcept { return DrawOrder; }
-        inline uint8_t GetDepth() const noexcept { return Depth; }
-        inline const glm::vec4& GetColor() const noexcept { return Color; }
-        inline const glm::vec2& GetOffset() const noexcept { return Offset; }
-        inline float GetRotation() const noexcept { return Rotation; }
-        inline SDL_FPoint GetPivot() const noexcept { return Pivot; }
-        inline Core::Anchor GetAnchor() const noexcept { return Anchor; }
-        inline bool IsVisible() const noexcept { return Visible; }
-        inline float GetWidthLimit() const noexcept { return WidthLimit; }
-        inline float GetLetterSpacing() const noexcept { return LetterSpacing; }
+        inline Asset::FontID GetFont() const noexcept 
+        { 
+            return Font; 
+        }
+        inline const std::string& GetText() const noexcept
+        {
+            return Text;
+        }
+        inline Render::RenderQueue GetRenderQueue() const noexcept 
+        { 
+            return RenderQueueType;
+        }
+        inline uint8_t GetDrawOrder() const noexcept 
+        { 
+            return DrawOrder;
+        }
+        inline uint8_t GetDepth() const noexcept
+        {
+            return Depth; 
+        }
+        inline const glm::vec4& GetColor() const noexcept 
+        { 
+            return Color;
+        }
+        inline const glm::vec2& GetOffset() const noexcept 
+        { 
+            return Offset;
+        }
+        inline float GetRotation() const noexcept
+        { 
+            return Rotation; 
+        }
+        inline SDL_FPoint GetPivot() const noexcept 
+        { 
+            return Pivot; 
+        }
+        inline Core::Anchor GetAnchor() const noexcept 
+        { 
+            return Anchor;
+        }
+        inline bool IsVisible() const noexcept 
+        {
+            return Visible; 
+        }
+        inline float GetWidthLimit() const noexcept 
+        { 
+            return WidthLimit;
+        }
+        inline float GetLetterSpacing() const noexcept 
+        { 
+            return LetterSpacing;
+        }
         inline int GetFontHeight() const
         {
             TTF_Font* font = Online::Asset::GetFont(Font);
             return font ? TTF_FontHeight(font) : 0;
         }
        
-        inline void SetFont(Asset::FontID id) noexcept { Font = id; }
+        inline void SetFont(Asset::FontID id) noexcept 
+        {
+            Font = id; 
+        }
         inline void SetText(const std::string& txt) noexcept 
         { 
             Text = txt;
@@ -99,17 +141,50 @@ namespace Online::Game
         {
             Text = reinterpret_cast<const char*>(txt);
         }
-        inline void SetRenderQueue(Render::RenderQueue q) noexcept { RenderQueueType = q; }
-        inline void SetDrawOrder(uint8_t order) noexcept { DrawOrder = order; }
-        inline void SetDepth(uint8_t d) noexcept { Depth = d; }
-        inline void SetColor(const glm::vec4& c) noexcept { Color = c; }
-        inline void SetOffset(const glm::vec2& off) noexcept { Offset = off; }
-        inline void SetRotation(float r) noexcept { Rotation = r; }
-        inline void SetPivot(const SDL_FPoint& p) noexcept { Pivot = p; }
-        inline void SetAnchor(Core::Anchor a) noexcept { Anchor = a; }
-        inline void SetVisible(bool v) noexcept { Visible = v; }
-        inline void SetWidthLimit(float w) noexcept { WidthLimit = w; }
-        inline void SetLetterSpacing(float spacing) noexcept { LetterSpacing = spacing; }
+        inline void SetRenderQueue(Render::RenderQueue q) noexcept
+        { 
+            RenderQueueType = q;
+        }
+        inline void SetDrawOrder(uint8_t order) noexcept 
+        { 
+            DrawOrder = order;
+        }
+        inline void SetDepth(uint8_t d) noexcept
+        { 
+            Depth = d;
+        }
+        inline void SetColor(const glm::vec4& c) noexcept
+        { 
+            Color = c; 
+        }
+        inline void SetOffset(const glm::vec2& off) noexcept
+        { 
+            Offset = off; 
+        }
+        inline void SetRotation(float r) noexcept
+        { 
+            Rotation = r;
+        }
+        inline void SetPivot(const SDL_FPoint& p) noexcept
+        { 
+            Pivot = p;
+        }
+        inline void SetAnchor(Core::Anchor a) noexcept 
+        { 
+            Anchor = a; 
+        }
+        inline void SetVisible(bool v) noexcept 
+        { 
+            Visible = v;
+        }
+        inline void SetWidthLimit(float w) noexcept 
+        { 
+            WidthLimit = w; 
+        }
+        inline void SetLetterSpacing(float spacing) noexcept
+        { 
+            LetterSpacing = spacing;
+        }
       
     private:
         Asset::FontID   Font = Asset::FontID::Ipix;

@@ -41,18 +41,22 @@ namespace Online::Script
             bool cursorVisible = true;
             int cursorIndex = 0;
 
-            void SetOnTextChanged(std::function<void(Game::GameObject*, const std::string&)> callback) {
+            void SetOnTextChanged(std::function<void(Game::GameObject*, const std::string&)> callback) 
+            {
                 onTextChanged = std::move(callback);
             }
-            void SetOnEnterPressed(std::function<void(Game::GameObject*, const std::string&)> callback) {
+            void SetOnEnterPressed(std::function<void(Game::GameObject*, const std::string&)> callback) 
+            {
                 onEnterPressed = std::move(callback);
             }
 
-            int TotalCodePoints() const {
+            int TotalCodePoints() const 
+            {
                 return static_cast<int>(Core::Utf8ToUtf32(buffer).size() + Core::Utf8ToUtf32(compositionText).size());
             }
 
-            float GetCursorXOffset(float scale, float spacing, Online::Asset::FontID fontID) const {
+            float GetCursorXOffset(float scale, float spacing, Online::Asset::FontID fontID) const 
+            {
                 std::u32string full32 = Core::Utf8ToUtf32(buffer + compositionText);
                 float x = 0.0f;
                 int count = (cursorIndex < static_cast<int>(full32.size())) ? cursorIndex : static_cast<int>(full32.size());
@@ -140,11 +144,13 @@ namespace Online::Script
                 return anchorOffset;
             }
 
-            size_t CodePointIndexToByteOffset(const std::string& str, int cpIndex) const {
+            size_t CodePointIndexToByteOffset(const std::string& str, int cpIndex) const 
+            {
                 size_t byteOffset = 0;
                 int cpCount = 0;
                 const char* ptr = str.data();
-                while (cpCount < cpIndex && byteOffset < str.size()) {
+                while (cpCount < cpIndex && byteOffset < str.size()) 
+                {
                     unsigned char c = static_cast<unsigned char>(ptr[byteOffset]);
                     if ((c & 0x80) == 0x00) byteOffset += 1;
                     else if ((c & 0xE0) == 0xC0) byteOffset += 2;
@@ -156,12 +162,14 @@ namespace Online::Script
                 return byteOffset;
             }
 
-            void InsertTextAt(int insertCp, const std::string& utf8) {
+            void InsertTextAt(int insertCp, const std::string& utf8) 
+            {
                 std::u32string u32 = Core::Utf8ToUtf32(utf8);
                 std::string newBuffer;
                 size_t byteIns = CodePointIndexToByteOffset(buffer, insertCp);
                 newBuffer = buffer.substr(0, byteIns);
-                for (char32_t ch : u32) {
+                for (char32_t ch : u32) 
+                {
                     if (static_cast<int>(Core::Utf8ToUtf32(newBuffer).size()) >= maxChars) break;
                     char temp[4];
                     size_t len = Core::CodepointToUtf8(ch, temp);
@@ -172,7 +180,8 @@ namespace Online::Script
                 cursorIndex = insertCp + static_cast<int>(u32.size());
             }
 
-            void InsertText(const std::string& utf8) {
+            void InsertText(const std::string& utf8) 
+            {
                 if (utf8.empty()) return;
                 int insertPos = cursorIndex;
                 if (!compositionText.empty()) insertPos = compositionStart;
@@ -183,9 +192,11 @@ namespace Online::Script
                 NotifyChange();
             }
 
-            void DeleteBack() {
+            void DeleteBack() 
+            {
                 if (cursorIndex <= 0) return;
-                if (!compositionText.empty()) {
+                if (!compositionText.empty()) 
+                {
                     compositionText.clear();
                     cursorIndex = compositionStart;
                     RefreshDisplay();
@@ -202,10 +213,12 @@ namespace Online::Script
                 NotifyChange();
             }
 
-            void DeleteForward() {
+            void DeleteForward() 
+            {
                 int totalBuf = static_cast<int>(Core::Utf8ToUtf32(buffer).size());
                 if (cursorIndex >= totalBuf && compositionText.empty()) return;
-                if (!compositionText.empty()) {
+                if (!compositionText.empty()) 
+                {
                     compositionText.clear();
                     cursorIndex = compositionStart;
                     RefreshDisplay();
@@ -221,7 +234,8 @@ namespace Online::Script
                 NotifyChange();
             }
 
-            void Clear() {
+            void Clear() 
+            {
                 buffer.clear();
                 compositionText.clear();
                 cursorIndex = 0;
@@ -230,7 +244,8 @@ namespace Online::Script
                 NotifyChange();
             }
 
-            void SetText(const std::string& text) {
+            void SetText(const std::string& text) 
+            {
                 buffer = text.substr(0, maxChars);
                 compositionText.clear();
                 cursorIndex = static_cast<int>(Core::Utf8ToUtf32(buffer).size());
@@ -239,7 +254,8 @@ namespace Online::Script
             }
 
         private:
-            void RefreshDisplay() {
+            void RefreshDisplay() 
+            {
                 if (!textComp) return;
                 std::string displayStr;
                 if (focused && !compositionText.empty()) {
@@ -251,7 +267,8 @@ namespace Online::Script
                     std::string part2 = buffer.substr(byteOff);
                     displayStr = part1 + compositionText + part2;
                 }
-                else {
+                else 
+                {
                     displayStr = buffer;
                 }
                 if (displayStr.empty() && !focused)
@@ -260,18 +277,26 @@ namespace Online::Script
                     textComp->SetText(displayStr);
             }
 
-            void NotifyChange() {
+            void NotifyChange() 
+            {
                 if (onTextChanged && textComp)
                     onTextChanged(textComp->gameObject, buffer);
             }
-            void NotifyEnter() {
+            void NotifyEnter() 
+            {
                 if (onEnterPressed && textComp)
                     onEnterPressed(textComp->gameObject, buffer);
             }
         };
 
-        static void TextInputData_Construct(void* p) { new (p) TextInputData(); }
-        static void TextInputData_Destruct(void* p) { static_cast<TextInputData*>(p)->~TextInputData(); }
+        static void TextInputData_Construct(void* p) 
+        {
+            new (p) TextInputData();
+        }
+        static void TextInputData_Destruct(void* p) 
+        { 
+            static_cast<TextInputData*>(p)->~TextInputData();
+        }
 
         static void TextInputData_OnEnable(Game::GameObject* go)
         {
@@ -310,8 +335,10 @@ namespace Online::Script
                 + data->uiCamera->GetComponent<Game::Transform>()->GetWorldPosition();
 
             SDL_FRect hitRect;
-            if (bg) hitRect = bg->GetDstRect(trans->GetWorldPosition(), trans->GetWorldScale());
-            else    hitRect = { trans->GetWorldPosition().x, trans->GetWorldPosition().y, 200.0f, 50.0f };
+            if (bg) 
+                hitRect = bg->GetDstRect(trans->GetWorldPosition(), trans->GetWorldScale());
+            else    
+                hitRect = { trans->GetWorldPosition().x, trans->GetWorldPosition().y, 200.0f, 50.0f };
 
             if (data->focused) 
             {
