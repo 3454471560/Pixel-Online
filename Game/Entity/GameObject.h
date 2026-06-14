@@ -22,6 +22,9 @@
 #include<Game/Component/AnimatorController.h>
 #include<Game/Component/Text.h>
 
+#include<Game/Component/NetID.h>
+#include<Game/Component/SyncTransform.h>
+
 #include<Script/Common/FuncTable.h>
 
 #include <entt/entt.hpp>

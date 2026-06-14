@@ -2,7 +2,7 @@
 #include <Context/Context.h>
 #include <Core/Singleton/Singleton.h>
 
-namespace Online::Net::Server { class NetworkServer; }
+namespace Online::Net::Server { class HybridServer; }
 
 namespace Online::Runtime
 {
@@ -25,25 +25,25 @@ namespace Online::Runtime
     public:
 
         template<typename T>
-        inline Module<T>& GetSerrverModule() const noexcept
+        inline Module<T>& GetServerModule() const noexcept
         {
             static_assert(
-                std::is_same_v<T, Online::Net::Server::NetworkServer>
+                std::is_same_v<T, Online::Net::Server::HybridServer>
                 , "ServerContext::GetServerModule<T>(): T must be a server-specific module type"
                 );
 
-            if constexpr (std::is_same_v<T, Online::Net::Server::NetworkServer>) { return *serverModules.NetworkServer; }
+            if constexpr (std::is_same_v<T, Online::Net::Server::HybridServer>) { return *serverModules.NetworkServer; }
         }
 
         template<typename T>
         inline FuncTable<T>& GetServerFuncTable() const noexcept
         {
             static_assert(
-                std::is_same_v<T, Online::Net::Server::NetworkServer>
+                std::is_same_v<T, Online::Net::Server::HybridServer>
                 , "ServerContext::GetServerFuncTable<T>(): T must be a server-specific FuncTable type"
                 );
 
-            if constexpr (std::is_same_v<T, Online::Net::Server::NetworkServer>) { return *serverFuncTables.NetworkServer; }
+            if constexpr (std::is_same_v<T, Online::Net::Server::HybridServer>) { return *serverFuncTables.NetworkServer; }
         }
 
         inline bool Check() const
@@ -60,7 +60,7 @@ namespace Online::Runtime
     public:
         struct ServerModules
         {
-            Module<Online::Net::Server::NetworkServer>* NetworkServer = nullptr;
+            Module<Online::Net::Server::HybridServer>* NetworkServer = nullptr;
 
             inline bool Check() const
             {
@@ -76,7 +76,7 @@ namespace Online::Runtime
 
         struct ServerFuncTables
         {
-            FuncTable<Online::Net::Server::NetworkServer>* NetworkServer = nullptr;
+            FuncTable<Online::Net::Server::HybridServer>* NetworkServer = nullptr;
 
             inline bool Check() const
             {

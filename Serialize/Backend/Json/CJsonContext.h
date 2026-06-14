@@ -77,7 +77,7 @@ namespace Online::Serialize
         void WriteArrayItem(glm::ivec3 value) override;
         void WriteArrayItem(glm::ivec4 value) override;
 
-        Blob ToBytes() const override;
+        std::vector<std::byte> ToBytes() const override;
         std::string ToString() const override;
 
     private:

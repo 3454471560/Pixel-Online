@@ -3,6 +3,9 @@
 #include <Context/Common/Module.h>
 #include <Game/Scene/Scene.h>
 
+#include <Net/Common/JoinWorldPacket.h>
+#include <Net/Common/ReqEntityDataPacket.h>
+
 #include<entt/entt.hpp>
 
 namespace Online::Game
@@ -74,11 +77,22 @@ namespace Online::Game
         void EndFrame();         
     public:
         void LoadScene(const std::string& sceneName);
+        void LoadScene(const std::vector<std::byte>& sceneName);
         void SwitchSceneAfterLoadingAsync(const std::string& newSceneName);
         void SwitchSceneAsync(const std::string& newSceneName);
         bool IsSceneLoading() { return isAsyncLoading == true; }
         void DisplayPendingScene();
-        bool IsPendingSceneReady() { return pendingScene != nullptr; }
+        bool IsPendingSceneReady() 
+        {
+            return pendingScene != nullptr; 
+        }
+
+    public:
+        void SendJoinWorldRequest(const std::string& playerName, uint32_t playerId);
+
+        void HandleJoinWorldRequest(int connId, const Online::Net::JoinWorldRequest& req);
+        void SendWorldSnapshot(int connId, uint32_t localPlayerNetId);
+        void HandleEntityDataRequest(int connId, const Online::Net::ReqEntityDataPacket& req);
     private:
         void ResetLoadingSceneState();
         void ApplyLoadedScene(Scene* newScene);
@@ -194,14 +208,61 @@ namespace Online::Game
             return static_cast<const Scene*>(activeScene)->FindGameObjectsByTag(tagName);
         }
 
+        inline uint32_t Generate()
+        {
+            constexpr uint32_t MAX_NET_ID = UINT32_MAX - 1000;
+            if (nextId >= MAX_NET_ID)
+                nextId = 1;
+            return ++nextId;
+        }
+        inline uint32_t GetServerFrame() const
+        {
+            return serverFrame;
+		}
+
+        inline uint32_t GetLocalPlayerNetId()
+        {
+            return localPlayerNetId;
+        }
+        inline GameObject* GetLocalPlayer()
+        {
+            if (!activeScene || localPlayerNetId == -1)
+                return nullptr;
+
+            auto& registry = activeScene->ecsRegistry;
+            auto view = registry.view<NetID>();
+
+            for (auto entity : view)
+            {
+                auto& netComp = view.get<NetID>(entity);
+                if (netComp.GetNetId() == localPlayerNetId)
+                {
+                    return activeScene->GetGameObject(entity);
+                }
+            }
+            return nullptr;
+        }
     private:
         Scene* activeScene = nullptr;
         Scene* loadingScene = nullptr;
         Scene* pendingScene = nullptr;
 
+		Scene* serverWorld = nullptr;
+
         std::unordered_map<std::string, std::string> BuildSettings;
         bool isAsyncLoading = false;
         bool showLoadingScene = false;
         bool pendingApplyScene = false;
+
+#pragma region PIXEL_SERVER
+        uint32_t nextId = 0;
+        uint32_t serverFrame = 0;
+        Online::Event::EventToken StepCompletedToken;
+#pragma endregion
+
+#pragma region PIXEL_CLIENT
+        uint32_t localPlayerNetId = -1;
+#pragma endregion
+
     };
 }

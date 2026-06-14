@@ -1,6 +1,5 @@
 #pragma once
 #include <Serialize/Common/SerializeAPI.h>
-#include <Serialize/Common/Serialize.h>
 #include <Serialize/Frontend/SerializeContext.h>
 #include <Serialize/Frontend/DeserializeContext.h>
 
@@ -27,7 +26,7 @@ namespace Online::Serialize
         bool SerializeToString(std::string& out, API api = API::Json) const;
         bool DeserializeFromString(const std::string& data, API api = API::Json);
 
-        bool SerializeToBytes(Online::Serialize::Blob& out, API api = API::Json) const;
+        bool SerializeToBytes(std::vector<std::byte>& out, API api = API::Json) const;
         bool DeserializeFromBytes(std::span<const std::byte> data, API api = API::Json);
     };
 }

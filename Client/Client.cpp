@@ -13,7 +13,7 @@
 #include<Asset/AssetHub.h>
 #include<Task/TaskScheduler.h>
 #include<Game/GameWorld.h>
-#include<Net/Client/NetworkClient.h>
+#include<Net/Client/HybridClient.h>
 #include<Audio/AudioPlayer.h>
 #include<Script/LifeCycleTable.h>
 #include<Game/Scene/Scene.h>
@@ -96,52 +96,52 @@ namespace
 #pragma region Input
 	inline bool OnGetKeyDown(Online::Input::KeyCode keyCode) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetKeyDown(keyCode);
+		return Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->GetKeyDown(keyCode);
 	}
 	inline bool OnGetKeyPressed(Online::Input::KeyCode keyCode) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetKeyPressed(keyCode);
+		return Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->GetKeyPressed(keyCode);
 	}
 	inline bool OnGetKeyReleased(Online::Input::KeyCode keyCode) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetKeyReleased(keyCode);
+		return Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->GetKeyReleased(keyCode);
 	}
 	inline void OnResetAllState() noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->ResetAllState();
+		Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->ResetAllState();
 	}
 	inline void OnResetMouseState() noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->ResetMouseState();
+		Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->ResetMouseState();
 	}
 	inline glm::vec2 OnGetMousePosition() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetMousePosition();
+		return Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->GetMousePosition();
 
 	}
 	inline std::string OnGetTextInputBuffer() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetTextInputBuffer();
+		return Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->GetTextInputBuffer();
 	}
 	inline void OnStartTextInput() noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->StartTextInput();
+		Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->StartTextInput();
 	}
 	inline void OnStopTextInput() noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->StopTextInput();
+		Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->StopTextInput();
 	}
 	inline std::string OnGetCompositionText() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetCompositionText();
+		return Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->GetCompositionText();
 	}
 	inline int OnGetCompositionCursor() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->GetCompositionCursor();
+		return Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->GetCompositionCursor();
 	}
 	inline void OnSetTextInputRect(int x, int y, int w, int h) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Input::InputMonitor>()->SetTextInputRect(x, y, w, h);
+		Online::Runtime::Context::Instance().GetModule<Online::Input::InputMonitor>()->SetTextInputRect(x, y, w, h);
 	}
 #pragma endregion
 
@@ -242,19 +242,19 @@ namespace
 #pragma region Config
 	inline Online::Render::API OnGetRenderAPI() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Config::Configurator>()->GetRenderAPI();
+		return Online::Runtime::Context::Instance().GetModule<Online::Config::Configurator>()->GetRenderAPI();
 	}
 	inline bool OnGetEnableVSync() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Config::Configurator>()->GetEnableVSync();
+		return Online::Runtime::Context::Instance().GetModule<Online::Config::Configurator>()->GetEnableVSync();
 	}
 	inline const Online::TileEdit::TileMap& OnGetTileMap(Online::Config::TileMapID ID) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Config::Configurator>()->GetTileMap(ID);
+		return Online::Runtime::Context::Instance().GetModule<Online::Config::Configurator>()->GetTileMap(ID);
 	}
 	inline const std::vector<Online::Config::CharLayout>& OnGetCharLayouts() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Config::Configurator>()->GetCharLayouts();
+		return Online::Runtime::Context::Instance().GetModule<Online::Config::Configurator>()->GetCharLayouts();
 	}
 #pragma endregion
 
@@ -288,98 +288,142 @@ namespace
 #pragma region Game
 	inline Online::Game::Scene* OnGetActiveScene() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->GetActiveScene();
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetActiveScene();
 	}
 	inline entt::registry& OnGetRegistry() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->GetRegistry();
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetRegistry();
 	}
 	inline void OnDestroyEntity(entt::entity entity) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->DestroyEntity(entity);
+		Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->DestroyEntity(entity);
 	}
 	inline Online::Game::GameObject* OnGetGameObject(entt::entity entity) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->GetGameObject(entity);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetGameObject(entity);
 	}
 	inline void OnSetRelationship(entt::entity childId, entt::entity parentId, entt::entity afterSibling, bool keepWorldTransform) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->SetRelationship(childId, parentId, afterSibling, keepWorldTransform);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->SetRelationship(childId, parentId, afterSibling, keepWorldTransform);
 	}
 	inline void OnTransformUpdater(entt::entity entity, glm::vec2 trans, float angle) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->TransformUpdater(entity, trans, angle);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->TransformUpdater(entity, trans, angle);
 	}
 	inline glm::vec2 OnGetWorldPosition(entt::entity entity) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->GetWorldPosition(entity);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetWorldPosition(entity);
 	}
 	inline float OnGetWorldRotation(entt::entity entity) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->GetWorldRotation(entity);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetWorldRotation(entity);
 	}
 	inline void OnSwitchSceneAfterLoadingAsync(const std::string& newSceneName) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->SwitchSceneAfterLoadingAsync(newSceneName);
+		Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->SwitchSceneAfterLoadingAsync(newSceneName);
 	}
 	inline void OnSwitchSceneAsync(const std::string& newSceneName) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->SwitchSceneAsync(newSceneName);
+		Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->SwitchSceneAsync(newSceneName);
 	}
 	inline void OnLoadScene(const std::string& sceneName) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->LoadScene(sceneName);
+		Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->LoadScene(sceneName);
 	}
 	inline bool OnIsSceneLoading() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->IsSceneLoading();
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->IsSceneLoading();
 	}
 	inline void OnDisplayPendingScene() noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->DisplayPendingScene();
+		Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->DisplayPendingScene();
 	}
 	inline bool OnIsPendingSceneReady() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->IsPendingSceneReady();
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->IsPendingSceneReady();
 	}
 	inline Online::Game::GameObject* OnFindGameObjectByName(std::string_view name) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectByName(name);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->FindGameObjectByName(name);
 	}
 	inline std::vector<Online::Game::GameObject*> OnFindGameObjectsAllByName(std::string_view name) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectsAllByName(name);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->FindGameObjectsAllByName(name);
 	}
 	inline Online::Game::GameObject* OnFindGameObjectByTag(std::string_view tagName) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectByTag(tagName);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->FindGameObjectByTag(tagName);
 	}
 	inline std::vector<Online::Game::GameObject*> OnFindGameObjectsByTag(std::string_view tagName) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Game::GameWorld>()->FindGameObjectsByTag(tagName);
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->FindGameObjectsByTag(tagName);
 	}
+	inline void OnSendJoinWorldRequest(const std::string& playerName, uint64_t playerId) noexcept
+	{
+		Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->SendJoinWorldRequest(playerName, playerId);
+	}
+	inline uint32_t OnGetLocalPlayerNetId() noexcept
+	{
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetLocalPlayerNetId();
+	}
+	inline Online::Game::GameObject* OnGetLocalPlayer() noexcept
+	{
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetLocalPlayer();
+	}
+
 #pragma endregion
 
 #pragma region Net
+	// 获取指定类型的消息队列
+	inline Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& OnGetMessageQueue(Online::Net::PacketType type) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance()
+			.GetClientModule<Online::Net::Client::HybridClient>()
+			->GetMessageQueue(type);
+	}
+
+	// 可靠发送，支持通道选择（默认值由调用方控制，这里直接转发）
+	inline bool OnSendReliable(std::span<const std::byte> data, Online::Net::PacketType type, Online::Net::ChannelType channel) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance()
+			.GetClientModule<Online::Net::Client::HybridClient>()
+			->SendReliable(data, type, channel);
+	}
+
+	// 不可靠发送，支持通道选择
+	inline bool OnSendUnreliable(std::span<const std::byte> data, Online::Net::PacketType type, Online::Net::ChannelType channel) noexcept
+	{
+		return Online::Runtime::ClientContext::Instance()
+			.GetClientModule<Online::Net::Client::HybridClient>()
+			->SendUnreliable(data, type, channel);
+	}
+
 	inline bool OnConnect(const std::string& ip, uint16_t port) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Net::Client::NetworkClient>()->Connect(ip, port);
+		return Online::Runtime::ClientContext::Instance()
+			.GetClientModule<Online::Net::Client::HybridClient>()
+			->Connect(ip, port);
 	}
+
 	inline void OnDisconnect() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Net::Client::NetworkClient>()->Disconnect();
+		Online::Runtime::ClientContext::Instance()
+			.GetClientModule<Online::Net::Client::HybridClient>()
+			->Disconnect();
 	}
-	inline bool OnSend(std::span<const std::byte> data) noexcept
-	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Net::Client::NetworkClient>()->Send(data);
-	}
-	inline Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& OnGetMessageQueue() noexcept
-	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Net::Client::NetworkClient>()->GetMessageQueue();
-	}
+
 	inline bool OnIsConnected() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientModule<Online::Net::Client::NetworkClient>()->IsConnected();
+		return Online::Runtime::ClientContext::Instance()
+			.GetClientModule<Online::Net::Client::HybridClient>()
+			->IsConnected();
+	}
+
+	inline int OnGetLocalConnId() noexcept
+	{
+		return Online::Runtime::ClientContext::Instance()
+			.GetClientModule<Online::Net::Client::HybridClient>()
+			->GetLocalConnId();
 	}
 #pragma endregion
 
@@ -458,6 +502,11 @@ namespace
 	{
 		return Online::Runtime::Context::Instance().GetModule<Online::Physics::PhysicsSimulator>()->RayCast(origin, angleRad, maxDistance, outHit,layerMask,includeTriggers);
 	}
+
+	inline void OnSetBodyTransform(entt::entity entity, const glm::vec2& position, float angle) noexcept
+	{
+		return Online::Runtime::Context::Instance().GetModule<Online::Physics::PhysicsSimulator>()->SetBodyTransform(entity, position, angle);
+	}
 #pragma endregion
 
 #pragma region Script
@@ -517,6 +566,10 @@ bool Online::Runtime::Client::Initialize()
 		FILL_COMMON_MODULE(ThreadTracker);
 		FILL_COMMON_MODULE(TaskScheduler);
 		FILL_COMMON_MODULE(LifeCycleTable);
+		FILL_COMMON_MODULE(GameWorld);
+		FILL_COMMON_MODULE(Configurator);
+		FILL_COMMON_MODULE(InputMonitor);
+
 
 		FILL_COMMON_FUNCTABLE(EventDispatcher);
 		FILL_COMMON_FUNCTABLE(Logger);
@@ -524,23 +577,20 @@ bool Online::Runtime::Client::Initialize()
 		FILL_COMMON_FUNCTABLE(Chronometer);
 		FILL_COMMON_FUNCTABLE(TaskScheduler);
 		FILL_COMMON_FUNCTABLE(PhysicsSimulator);
+		FILL_COMMON_FUNCTABLE(GameWorld);
 		FILL_COMMON_FUNCTABLE(LifeCycleTable);
+		FILL_COMMON_FUNCTABLE(Configurator);
+		FILL_COMMON_FUNCTABLE(InputMonitor);
 
 		FILL_CLIENT_MODULE(Renderer);
 		FILL_CLIENT_MODULE(RenderPipeline);
-		FILL_CLIENT_MODULE(Configurator);
 		FILL_CLIENT_MODULE(AssetHub);
 		FILL_CLIENT_MODULE(Window);
-		FILL_CLIENT_MODULE(InputMonitor);
-		FILL_CLIENT_MODULE(GameWorld);
 		FILL_CLIENT_MODULE(NetworkClient);
 		FILL_CLIENT_MODULE(AudioPlayer);
 
-		FILL_CLIENT_FUNCTABLE(Configurator);
 		FILL_CLIENT_FUNCTABLE(AssetHub);
 		FILL_CLIENT_FUNCTABLE(Window);
-		FILL_CLIENT_FUNCTABLE(InputMonitor);
-		FILL_CLIENT_FUNCTABLE(GameWorld);
 		FILL_CLIENT_FUNCTABLE(NetworkClient);
 
 #undef FILL_COMMON_MODULE
@@ -614,7 +664,6 @@ bool Online::Runtime::Client::Initialize()
 
 #pragma region Task
 		FUNCTABLE(TaskScheduler).OnPostJob = OnPostJob;
-		std::cout<< "Fill  " << FUNCTABLE(TaskScheduler).OnPostJob << std::endl;
 #pragma endregion
 
 #pragma region Input
@@ -667,14 +716,19 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(GameWorld).OnFindGameObjectsAllByName = OnFindGameObjectsAllByName;
 		FUNCTABLE(GameWorld).OnFindGameObjectByTag = OnFindGameObjectByTag;
 		FUNCTABLE(GameWorld).OnFindGameObjectsByTag = OnFindGameObjectsByTag;
+		FUNCTABLE(GameWorld).OnSendJoinWorldRequest = OnSendJoinWorldRequest;
+		FUNCTABLE(GameWorld).OnGetLoaclPlayerNetID = OnGetLocalPlayerNetId;
+		FUNCTABLE(GameWorld).OnGetLocalPlayer = OnGetLocalPlayer;
 #pragma endregion
 
 #pragma region Net
 		FUNCTABLE(NetworkClient).OnConnect = OnConnect;
 		FUNCTABLE(NetworkClient).OnDisconnect = OnDisconnect;
-		FUNCTABLE(NetworkClient).OnSend = OnSend;
-		FUNCTABLE(NetworkClient).OnGetMessageQueue = OnGetMessageQueue;
+		FUNCTABLE(NetworkClient).OnGetMessageQueue = OnGetMessageQueue;    // 现在带 PacketType 参数
+		FUNCTABLE(NetworkClient).OnSendReliable = OnSendReliable;      // 新字段
+		FUNCTABLE(NetworkClient).OnSendUnreliable = OnSendUnreliable;    // 新字段
 		FUNCTABLE(NetworkClient).OnIsConnected = OnIsConnected;
+		FUNCTABLE(NetworkClient).OnGetLocalConnId = OnGetLocalConnId;    // 新增 ID 访问
 #pragma endregion
 
 #pragma region Physics
@@ -693,6 +747,7 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(PhysicsSimulator).OnAddDebugRay = OnAddDebugRay;
 		FUNCTABLE(PhysicsSimulator).OnRayCast = OnRayCast;
 		FUNCTABLE(PhysicsSimulator).OnRayCastLayer = OnRayCastLayer;
+		FUNCTABLE(PhysicsSimulator).OnSetBodyTransform = OnSetBodyTransform;
 #pragma endregion
 
 #pragma region Script

@@ -32,6 +32,7 @@ namespace Online::Event
         PhysicsTriggerExit,
         PhysicsTriggerStay,
         PhysFixedUpdate,
+        PhysStepCompleted,
 
         Invalid,
     };

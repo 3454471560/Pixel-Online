@@ -39,10 +39,12 @@
     <ClInclude Include="Component\ColliderList.h" />
     <ClInclude Include="Component\Component.h" />
     <ClInclude Include="Component\Follow.h" />
+    <ClInclude Include="Component\NetID.h" />
     <ClInclude Include="Component\Parent.h" />
     <ClInclude Include="Component\ProgressBar.h" />
     <ClInclude Include="Component\Rigidbody.h" />
     <ClInclude Include="Component\Sprite.h" />
+    <ClInclude Include="Component\SyncTransform.h" />
     <ClInclude Include="Component\Tag.h" />
     <ClInclude Include="Component\Text.h" />
     <ClInclude Include="Component\TileMap.h" />
@@ -148,9 +150,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;PIXEL_CLIENT;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\enet\include;$(SolutionDir)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -165,10 +167,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>
-      </PreprocessorDefinitions>
+      <PreprocessorDefinitions>;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\enet\include;$(SolutionDir)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>

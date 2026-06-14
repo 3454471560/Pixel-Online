@@ -30,9 +30,6 @@
     <ClInclude Include="Frontend\DeserializeContext.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Serialize.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Backend\Json\CJsonContext.h">
       <Filter>头文件</Filter>
     </ClInclude>

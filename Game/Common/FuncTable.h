@@ -1,6 +1,5 @@
 #pragma once
 #include <Context/Context.h>
-#include <Client/Context/ClientContext.h>
 
 #include <entt/entt.hpp>
 #include <glm.hpp>
@@ -16,6 +15,7 @@ namespace Online::Runtime
 	struct FuncTable<Online::Game::GameWorld>
 	{
 		friend class Online::Runtime::Client;
+		friend class Online::Runtime::Server;
 	private:
 		FuncTable() = default;
 		~FuncTable() = default;
@@ -146,6 +146,28 @@ namespace Online::Runtime
 		{
 			return OnFindGameObjectsByTag(tagName);
 		}
+
+		inline void InvokeOnSendJoinWorldRequest(const std::string& address, uint64_t playerId) noexcept
+		{
+			OnSendJoinWorldRequest(address, playerId);
+		}
+		inline uint32_t InvokeOnGetLocalPlayerNetId() noexcept
+		{
+			return OnGetLoaclPlayerNetID();
+		}
+		inline Game::GameObject* InvokeOnGetLocalPlayer() noexcept
+		{
+			return OnGetLocalPlayer();
+		}
+		inline uint32_t InvokeOnGenerate() noexcept
+		{
+			return OnGenerate();
+		}
+		inline uint32_t InvokeOnGetServerFrame() noexcept
+		{
+			return OnGetServerFrame();
+		}
+
 	private:
 		Online::Game::Scene* (*OnGetActiveScene)() noexcept = nullptr;
 		entt::registry& (*OnGetRegistry)() noexcept = nullptr;
@@ -165,6 +187,11 @@ namespace Online::Runtime
 		std::vector<Game::GameObject*>(*OnFindGameObjectsAllByName)(std::string_view) noexcept = nullptr;
 		Game::GameObject* (*OnFindGameObjectByTag)(std::string_view) noexcept = nullptr;
 		std::vector<Game::GameObject*>(*OnFindGameObjectsByTag)(std::string_view) noexcept = nullptr;
+		uint32_t(*OnGenerate)() noexcept = nullptr;
+		void (*OnSendJoinWorldRequest)(const std::string&, uint64_t) noexcept = nullptr;
+		uint32_t (*OnGetLoaclPlayerNetID)() noexcept = nullptr;
+		Game::GameObject* (*OnGetLocalPlayer)() noexcept = nullptr;
+		uint32_t(*OnGetServerFrame)() noexcept = nullptr;
 	};
 }
 
@@ -172,74 +199,95 @@ namespace Online::Game
 {
 	inline Online::Game::Scene* GetActiveScene() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnGetActiveScene();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetActiveScene();
 	}
 	inline entt::registry& GetRegistry() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnGetRegistry();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetRegistry();
 	}
 	inline void DestroyEntity(entt::entity entity) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnDestoryEntity(entity);
+		Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnDestoryEntity(entity);
 	}
 	inline Online::Game::GameObject* GetGameObject(entt::entity entity) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnGetGameObject(entity);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetGameObject(entity);
 	}
 	inline void SetRelationship(entt::entity childId, entt::entity parentId, entt::entity afterSibling, bool keepWorldTransform) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnSetRelationship(childId, parentId, afterSibling, keepWorldTransform);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnSetRelationship(childId, parentId, afterSibling, keepWorldTransform);
 	}
 	inline void TransformUpdater(entt::entity entity, glm::vec2 trans, float angle) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeTransformUpdater(entity, trans, angle);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeTransformUpdater(entity, trans, angle);
 	}
 	inline glm::vec2 GetWorldPosition(entt::entity entity) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnGetWorldPosition(entity);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetWorldPosition(entity);
 	}
 	inline float GetWorldRotation(entt::entity entity) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnGetWorldRotation(entity);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetWorldRotation(entity);
 	}
 	inline void SwitchSceneAfterLoadingAsync(const std::string& newSceneName) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnSwitchSceneAfterLoadingAsync(newSceneName);
+		Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnSwitchSceneAfterLoadingAsync(newSceneName);
 	}
 	inline void SwitchSceneAsync(const std::string& newSceneName) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnSwitchSceneAsync(newSceneName);
+		Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnSwitchSceneAsync(newSceneName);
 	}
 	inline void LoadScene(const std::string& sceneName) noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnLoadScene(sceneName);
+		Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnLoadScene(sceneName);
 	}
 	inline bool IsSceneLoading() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnIsSceneLoading();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnIsSceneLoading();
 	}
 	inline void DisplayPendingScene() noexcept
 	{
-		Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnDisplayPendingScene();
+		Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnDisplayPendingScene();
 	}
 	inline bool IsPendingSceneReady() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnIsPendingSceneReady();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnIsPendingSceneReady();
 	}
 	inline GameObject* FindGameObjectByName(std::string_view name) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectByName(name);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectByName(name);
 	}
 	inline std::vector<GameObject*> FindGameObjectsAllByName(std::string_view name) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectsAllByName(name);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectsAllByName(name);
 	}
 	inline GameObject* FindGameObjectByTag(std::string_view tagName) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectByTag(tagName);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectByTag(tagName);
 	}
 	inline std::vector<GameObject*> FindGameObjectsByTag(std::string_view tagName) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectsByTag(tagName);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnFindGameObjectsByTag(tagName);
+	}
+
+	inline void SendJoinWorldRequest(const std::string& address, uint64_t playerId) noexcept
+	{
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnSendJoinWorldRequest(address, playerId);
+	}
+	inline uint32_t GetLocalPlayerNetId() noexcept
+	{
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetLocalPlayerNetId();
+	}
+	inline GameObject* GetLocalPlayer() noexcept
+	{
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetLocalPlayer();
+	}
+	inline uint32_t Generate() noexcept
+	{
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGenerate();
+	}
+	inline uint32_t GetServerFrame() noexcept
+	{
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetServerFrame();
 	}
 }

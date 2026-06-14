@@ -1,6 +1,4 @@
 #pragma once
-#include <Serialize/Common/Serialize.h>
-
 #include <filesystem>
 #include <string>
 
@@ -58,7 +56,7 @@ namespace Online::Serialize
         virtual void WriteArrayItem(glm::ivec4 value) = 0;
 
     public:
-        virtual Online::Serialize::Blob ToBytes() const = 0;
+        virtual std::vector<std::byte> ToBytes() const = 0;
         virtual std::string ToString() const = 0;
     };
 }

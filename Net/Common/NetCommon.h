@@ -2,73 +2,38 @@
 #include <cstdint>
 #include <vector>
 #include <span>
+#include <queue>
 
-#include <SDL_net.h>
+#include <enet/enet.h>
 
 namespace Online::Net
 {
     enum class PacketType : uint16_t
     {
-        Invalid = 0,
-        Heartbeat = 1,        // 心跳包（无Body）
-        ConnectionId = 2,     // 连接ID分配包
-        NormalMessage = 3,    // 普通业务消息
-        Disconnect = 4        // 主动断开连接
+        ConnID = 0,   // 服务器向客户端分配连接 ID（建立连接时使用）
+        UdpHandshake = 1,   // UDP 握手（绑定 TCP 连接 ID）
+        Heartbeat = 2,   // UDP 心跳
+
+        EntityState = 10,  // 实体状态同步
+        JoinWorldRequest = 11,  // 客户端→服务端：申请加入世界
+		WorldSnapshot = 12, // 服务端→客户端：世界快照
+        ReqEntityData,    // 客户端：请求指定NetID实体数据
+        RespEntityData,  // 服务端：返回指定NetID实体完整数据
+        PlayerInput = 15,   // 客户端 → 服务端：玩家按键输入包
     };
 
-    enum class NetErrorCode : int
+    enum class ChannelType : uint8_t
     {
-        Success = 0,
-        SDLNetInitFailed = 1,
-        ResolveHostFailed = 2,
-        TcpOpenFailed = 3,
-        AddSocketFailed = 4,
-        RecvFailed = 5,
-        SendFailed = 6,
-        HeartbeatTimeout = 7,
-        OversizedPacket = 8,
-        InvalidPacketLength = 9,
-        ConnectionClosed = 10
+        ReliableOrdered = 0,  // 可靠有序（聊天、RPC）
+        ReliableUnordered = 1,  // 可靠无序（技能释放等）
+        Unreliable = 2,  // 不可靠（位置同步）
     };
 
-    inline std::string NetErrorCodeToString(NetErrorCode code) noexcept
-    {
-        switch (code)
-        {
-        case NetErrorCode::Success: return "Success";
-        case NetErrorCode::SDLNetInitFailed: return "SDLNet init failed";
-        case NetErrorCode::ResolveHostFailed: return "Resolve host failed";
-        case NetErrorCode::TcpOpenFailed: return "TCP open failed";
-        case NetErrorCode::AddSocketFailed: return "Add socket to set failed";
-        case NetErrorCode::RecvFailed: return "Receive data failed";
-        case NetErrorCode::SendFailed: return "Send data failed";
-        case NetErrorCode::HeartbeatTimeout: return "Heartbeat timeout";
-        case NetErrorCode::OversizedPacket: return "Oversized packet received";
-        case NetErrorCode::InvalidPacketLength: return "Invalid packet length";
-        case NetErrorCode::ConnectionClosed: return "Connection closed by peer";
-        default: return "Unknown error (" + std::to_string(static_cast<int>(code)) + ")";
-        }
-    }
-
-    inline uint32_t CalculateCRC32(const std::span<const std::byte> data) noexcept
-    {
-        uint32_t crc = 0xFFFFFFFF;
-        for (const std::byte b : data)
-        {
-            crc ^= static_cast<uint8_t>(b);
-            for (int i = 0; i < 8; ++i)
-            {
-                crc = (crc >> 1) ^ ((crc & 1) ? 0xEDB88320 : 0);
-            }
-        }
-        return ~crc;
-    }
-
-    struct PacketHeader 
+    struct PacketHeader
     {
         uint16_t type = 0;      // 应用层消息类型
         uint32_t length = 0;    // 后续 payload 长度（字节）
-        uint32_t seq = 0;       // 可选：序列号，用于重传/丢包统计
+        uint32_t seq = 0;       // 可选：序列号
     };
 
     struct NetMessage
@@ -88,27 +53,19 @@ namespace Online::Net
     struct Connection 
     {
         int id = -1;
-        TCPsocket socket = nullptr;
+        ENetPeer* peer = nullptr;
+
         uint32_t lastHeartbeatMs = 0;
+
         std::vector<std::byte> recvBuffer;
-
-        std::queue<std::vector<std::byte>> sendQueue;
-        size_t sendOffset = 0;
-        bool inWriteSet = false;
-
-        uint32_t nextSendSeq = 1;
-
-        void Reset()
+        bool handshakeCompleted = false;
+      
+        void Reset() 
         {
             id = -1;
-            socket = nullptr;
+            peer = nullptr;
             lastHeartbeatMs = 0;
-            recvBuffer.clear();
-            while (!sendQueue.empty()) sendQueue.pop();
-            sendOffset = 0;
-            inWriteSet = false;
-            nextSendSeq = 1;
+            handshakeCompleted = false;
         }
     };
-
 }

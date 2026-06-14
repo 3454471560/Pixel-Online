@@ -4,6 +4,19 @@
 #include<Game/Entity/GameObject.h>
 #include<Game/Component/Tag.h>
 #include<Game/Common/EntityRefFixup.h>
+#include<Time/Common/FuncTable.h>
+
+#ifdef PIXEL_CLIENT
+#include<Net/Client/Common/FuncTable.h>
+#include<Net/Common/ReqEntityDataPacket.h>
+#include<Net/Common/EntityFullData.h>
+#endif // PIXEL_CLIENT
+
+#ifdef PIXEL_SERVER
+#include<Net/Server/Common/FuncTable.h>
+#include<Net/Common/ReqEntityDataPacket.h>
+#endif // PIXEL_SERVER
+
 
 #include<algorithm>
 
@@ -11,6 +24,7 @@ namespace Online::Game
 {
     Scene::Scene()
         : gameObjectPool(nullptr, nullptr, 32)
+        , CameraInited(false)
     {
         triggerEnterToken = Online::Event::Subscribe(
             Online::Event::EventType::PhysicsTriggerEnter, &Scene::OnTriggerEnterThunk, this);
@@ -143,6 +157,18 @@ namespace Online::Game
             {
                 text->Serialize(entityCtx.GetSubContext("Text"));
             }
+            if (auto* netId = ecsRegistry.try_get<NetID>(entity))
+            {
+                netId->Serialize(entityCtx.GetSubContext("NetID"));
+			}
+            if(auto* syncTrans = ecsRegistry.try_get<SyncTransform>(entity))
+            {
+                syncTrans->Serialize(entityCtx.GetSubContext("SyncTransform"));
+			}
+            if (auto* tileMap = ecsRegistry.try_get<TileMap>(entity))
+            {
+                tileMap->Serialize(entityCtx.GetSubContext("TileMap"));
+            }
 
             if (auto* parent = ecsRegistry.try_get<Parent>(entity))
             {
@@ -179,6 +205,7 @@ namespace Online::Game
         ecsRegistry.clear();
         delayDestroyQueue.clear();
         root = entt::null;
+        CameraInited = false;
 
         int sceneVersion = 0;
         if (!ctx.Read("version", sceneVersion))
@@ -311,6 +338,21 @@ namespace Online::Game
                 auto& text = ecsRegistry.emplace<Text>(entity);
                 text.Deserialize(entityCtx.GetSubContext("Text"));
             }
+            if (entityCtx.HasSubContext("NetID"))
+            {
+                auto& netId = ecsRegistry.emplace<NetID>(entity);
+                netId.Deserialize(entityCtx.GetSubContext("NetID"));
+            }
+            if (entityCtx.HasSubContext("SyncTransform"))
+            {
+                auto& syncTrans = ecsRegistry.emplace<SyncTransform>(entity);
+                syncTrans.Deserialize(entityCtx.GetSubContext("SyncTransform"));
+			}
+            if (entityCtx.HasSubContext("TileMap"))
+            {
+                auto& tileMap = ecsRegistry.emplace<TileMap>(entity);
+                tileMap.Deserialize(entityCtx.GetSubContext("TileMap"));
+            }
 
             uint32_t layerRaw = 0;
             if (entityCtx.Read("layer", layerRaw))
@@ -377,6 +419,12 @@ namespace Online::Game
                 coll->gameObject = obj;
             if (auto* text = ecsRegistry.try_get<Text>(entity))
                 text->gameObject = obj;
+            if (auto* netId = ecsRegistry.try_get<NetID>(entity))
+				netId->gameObject = obj;
+            if (auto* syncTrans = ecsRegistry.try_get<SyncTransform>(entity))
+				syncTrans->gameObject = obj;
+            if (auto* tileMap = ecsRegistry.try_get<TileMap>(entity))
+                tileMap->gameObject = obj;
             if (auto* parent = ecsRegistry.try_get<Parent>(entity))
                 parent->gameObject = obj;
 
@@ -473,6 +521,117 @@ namespace Online::Game
         Online::Log::Info("Scene deserialize completed: " + std::to_string(idMap.size()) + " entities loaded");
     }
 
+    void Scene::InitMainCamera()
+    {
+        entt::entity camEntity = entt::null;
+        auto tagView = ecsRegistry.view<Tag>();
+        for (auto [entity, tag] : tagView.each())
+        {
+            if (tag.GetName() == "Main Camera")
+            {
+                camEntity = entity;
+                break;
+            }
+        }
+
+        if (camEntity == entt::null)
+        {
+            camEntity = CreateEntity("Main Camera", "MainCamera");
+            if (camEntity == entt::null)
+            {
+                return;
+            }
+        }
+
+        Camera& camera = ecsRegistry.emplace_or_replace<Camera>(camEntity);
+        camera.SetRenderTarget(Online::Asset::TextureID::Tex_WindowBuffer);
+        camera.SetRenderSize({ 1280, 780 });
+
+        Transform* trans = ecsRegistry.try_get<Transform>(camEntity);
+        if (trans)
+        {
+            trans->SetLocalPosition({ 0.0f, 0.0f });
+        }
+
+        GameObject* camGo = GetGameObject(camEntity);
+        if (!camGo)
+        {
+            camGo = gameObjectPool.Get();
+            camGo->Reset(camEntity);
+            entityToGameObject[camEntity] = camGo;
+
+            if (auto* tg = ecsRegistry.try_get<Tag>(camEntity))
+                tg->gameObject = camGo;
+            if (auto* tr = ecsRegistry.try_get<Transform>(camEntity))
+                tr->gameObject = camGo;
+            if (auto* cl = ecsRegistry.try_get<ChildLink>(camEntity))
+                cl->gameObject = camGo;
+            if (auto* cm = ecsRegistry.try_get<Camera>(camEntity))
+                cm->gameObject = camGo;
+        }
+
+        if (camGo->IsActive())
+        {
+            camera.OnEnable();
+        }
+
+        CameraInited = true;
+
+        GameObject* target = Game::GetLocalPlayer();
+        
+        if (!target)
+            return;
+        Follow& follow = camGo->AddComponent<Follow>();
+        follow.SetTarget(target->GetComponent<Transform>());
+        follow.SetOffest({ -640,-390 });
+        std::string name = std::string(target->GetName());
+        IsEnableSync = true;
+           
+        Sprite& sprite = target->AddComponent<Sprite>();
+        Animator& animator = target->AddComponent<Animator>();
+
+        sprite.SetRenderOffset({ 0,-58 });
+        sprite.SetRenderQueue(Render::RenderQueue::World);
+        animator.SetSprite(&sprite);
+
+        GameObject* overlayGO = CreateGameObject("Overlay");
+        overlayGO->SetParent(target);
+        Sprite& overlaySprite = overlayGO->AddComponent<Sprite>();
+        Animator& overlayAnim = overlayGO->AddComponent<Animator>();
+        overlaySprite.SetRenderOffset({ 0,-55 });
+        overlayAnim.SetSprite(&overlaySprite);
+        overlaySprite.OnDisable();
+
+
+        AnimatorController& controller = target->AddComponent<AnimatorController>();
+        controller.SetStates({
+            { "Idle", Asset::AnimationClipID::Anim_SilverHat_Idle },
+            { "Run",  Asset::AnimationClipID::Anim_SilverHat_Run }
+            });
+        controller.SetMainAnimator(&animator);
+        controller.SetOverlayAnimator(&overlayAnim);
+
+        controller.SetTransitions({
+        {
+            "Idle",
+            "Run",
+            0.0f,
+            { { "Speed", AnimatorConditionMode::Greater, 0.1f } }
+        },
+        {
+            "Run",
+            "Idle",
+            0.0f,
+            { { "Speed", AnimatorConditionMode::Less, 0.1f } }
+        }
+            });
+
+        controller.SetDefaultStateName("Idle");
+        controller.Play("Idle");
+
+
+    }
+
     entt::entity Scene::GetRootEntity() const noexcept
     {
         return root;
@@ -484,8 +643,189 @@ namespace Online::Game
         return it != entityToGameObject.end() ? it->second : nullptr;
     }
 
+    void Scene::CollectSyncEntities(std::vector<Net::EntityStateData>& outStates)
+    {
+        outStates.clear();
+        auto syncView = ecsRegistry.view<NetID, Transform, Rigidbody>();
+        outStates.reserve(syncView.size_hint());
+
+        uint32_t frame = Game::GetServerFrame();    
+
+        for (auto [entity, netId, trans, rb] : syncView.each())
+        {
+            if (!netId.GetNeedSync()) continue;
+
+            Net::EntityStateData state{};
+            state.netId = netId.GetNetId();
+            state.x = trans.GetWorldPosition().x;
+            state.y = trans.GetWorldPosition().y;
+            state.rotation = trans.GetWorldRotation();
+
+            auto vel = rb.GetVelocity(entity);
+            state.velocityX = vel.x;
+            state.velocityY = vel.y;
+
+            state.serverFrame = frame;
+
+            outStates.push_back(state);
+        }
+    }
+
+    void Scene::BroadcastEntityStates()
+    {
+#ifdef PIXEL_SERVER
+        std::vector<Net::EntityStateData> states;
+        CollectSyncEntities(states);
+
+        if (states.empty()) return;
+
+        Net::EntityStatePacket pkt;
+        pkt.entities = std::move(states);
+        pkt.entityCount = static_cast<uint32_t>(pkt.entities.size());
+
+        std::vector<std::byte> payload = pkt.SerializePayload();
+
+        Net::Server::BroadcastUnreliable(payload,Net::PacketType::EntityState,Net::ChannelType::Unreliable);
+#endif // PIXEL_SERVER
+    }
+
+    void Scene::ProcessEntityStatePacket(const Net::EntityStatePacket& pkt)
+    {
+#ifdef PIXEL_CLIENT
+        if(IsEnableSync == false)
+			return;
+        std::unordered_map<uint32_t, const Net::EntityStateData*> stateMap;
+        for (const auto& state : pkt.entities)
+        {
+            stateMap[state.netId] = &state;
+        }
+
+        float now = Time::seconds();
+
+        auto view = ecsRegistry.view<NetID, SyncTransform, Transform>();
+        for (auto [entity, netIdComp, syncComp, transform] : view.each())
+        {
+            uint32_t netId = netIdComp.GetNetId();
+            auto it = stateMap.find(netId);
+            if (it == stateMap.end())
+                continue;
+
+            const auto& state = *it->second;
+
+            syncComp.targetX = state.x;
+            syncComp.targetY = state.y;
+            syncComp.targetRotation = state.rotation;
+            syncComp.targetVelX = state.velocityX;
+            syncComp.targetVelY = state.velocityY;
+            syncComp.serverFrame = state.serverFrame;
+            syncComp.receiveTime = now;
+            syncComp.needInterpolation = true;
+
+            stateMap.erase(it);
+        }
+
+        for (auto& [netId, state] : stateMap)
+        {
+            RequestEntityData(netId);
+        }
+#endif // PIXEL_CLIENT
+    }
+
+    void Scene::RequestEntityData(uint32_t netId)
+    {
+#ifdef PIXEL_CLIENT
+        static std::unordered_set<uint32_t> pendingRequests;
+        if (pendingRequests.count(netId)) return;
+        pendingRequests.insert(netId);
+
+        Net::ReqEntityDataPacket req;
+        req.targetNetId = netId;
+        auto payload = req.SerializePayload();
+        Net::Client::SendReliable(payload, Net::PacketType::ReqEntityData, Net::ChannelType::ReliableOrdered);
+#endif
+    }
+
+    void Scene::CreateEntityFromFullData(const Net::EntityFullData& data)
+    {
+        auto netView = ecsRegistry.view<NetID>();
+        for (auto& entity : netView)
+        {
+            if (netView.get<NetID>(entity).GetNetId() == data.netId)
+            {
+                Online::Log::Warning("CreateEntityFromFullData: Entity with netId "
+                    + std::to_string(data.netId) + " already exists, skipping.");
+                return;
+            }
+        }
+
+        // 2. 创建 GameObject 基础实体
+        GameObject* go = CreateGameObject(data.entityName, data.entityTag);
+        if (!go)
+        {
+            Online::Log::Error("CreateEntityFromFullData: Failed to create GameObject for netId "
+                + std::to_string(data.netId));
+            return;
+        }
+
+        // 3. 设置 Transform
+        Transform* trans = go->GetTransform();
+        if (trans)
+        {
+            trans->SetWorldPosition(data.position);
+            trans->SetWorldScale(data.scale);
+            trans->SetWorldRotation(data.rotation);
+        }
+
+        // 4. 添加并配置 NetID（客户端被动接收，不发起同步）
+        NetID& netIdComp = go->AddComponent<NetID>();
+        netIdComp.SetNetId(data.netId);
+        netIdComp.SetOwnerConnId(data.ownerConnId);
+        netIdComp.SetNeedSync(false);
+
+        // 5. 添加 SyncTransform 组件，用于后续 EntityState 平滑插值
+        go->AddComponent<SyncTransform>();
+
+        // 6. 根据数据创建物理相关组件
+        if (data.hasRigidbody)
+        {
+            Rigidbody& rb = go->AddComponent<Rigidbody>();
+            rb.SetGravityScale(data.gravityScale);
+            rb.SetFixedRotation(data.fixedRotation);
+            rb.SetBodyType(data.bodyType);
+        }
+
+        if (data.hasCollider)
+        {
+            Collider& col = go->AddComponent<Collider>();
+            col.SetShape(data.shape);
+            col.SetHalfSize(data.halfSize);
+            col.SetRadius(data.radius);
+            col.SetDensity(data.density);
+            col.SetFriction(data.friction);
+            col.SetRestitution(data.restitution);
+            Core::StateFlags<Physics::PhysicsLayer> categoryFlag;
+            categoryFlag.OverwriteBits(static_cast<Physics::PhysicsLayer>(data.layerBits));
+            col.SetCategory(categoryFlag);    
+        }
+
+        for (uint32_t scriptId : data.scriptIds)
+        {
+            go->AddScriptFunction(static_cast<Script::ScriptFunctionID>(scriptId));
+        }
+
+        Online::Log::Info("CreateEntityFromFullData: Successfully created entity "
+            + data.entityName + " (netId=" + std::to_string(data.netId) + ")");
+    }
+
     void Scene::Update(float deltaTime)
     {
+#ifdef PIXEL_CLIENT
+        if (!CameraInited)
+        {
+            InitMainCamera();
+        }
+#endif
+
         for (auto& [entity, obj] : entityToGameObject) {
             if (!obj->IsActive()) continue;
             obj->ExecuteScriptUpdate(deltaTime);
@@ -565,6 +905,16 @@ namespace Online::Game
         if (auto* tagComp = ecsRegistry.try_get<Tag>(entity)) tagComp->gameObject = ptr;
         if (auto* transform = ecsRegistry.try_get<Transform>(entity)) transform->gameObject = ptr;
         if (auto* childLink = ecsRegistry.try_get<ChildLink>(entity)) childLink->gameObject = ptr;
+
+#ifdef PIXEL_SERVER
+        if (tag != "System" && tag != "Terrain")
+        {
+            NetID& netId = ecsRegistry.emplace<NetID>(entity);
+            netId.SetNetId(Game::Generate());
+            netId.SetNeedSync(true);
+            ecsRegistry.emplace<SyncTransform>(entity);
+        }
+#endif
 
         return ptr;
     }
@@ -1053,6 +1403,65 @@ namespace Online::Game
         }
     }
 
+    void Scene::ProcessSyncTransform()
+    {
+#ifdef PIXEL_CLIENT
+        constexpr float INTERP_FACTOR = 0.2f;
+        constexpr float MAX_PREDICTION_TIME = 0.1f;
+
+        float now = Time::seconds();
+
+        auto view = ecsRegistry.view<Transform, SyncTransform>();
+        for (auto [entity, trans, sync] : view.each())
+        {
+            if (!sync.needInterpolation || sync.GetIsActive() == false)
+                continue;
+
+            float dt = now - sync.receiveTime;
+            dt = glm::clamp(dt, 0.0f, MAX_PREDICTION_TIME); 
+
+            // 2. 外推位置 = 服务器位置 + 速度 * 时间差
+            float predictedX = sync.targetX + sync.targetVelX * dt;
+            float predictedY = sync.targetY + sync.targetVelY * dt;
+
+            // 3. 平滑移动到预测位置
+            glm::vec2 currentPos = trans.GetWorldPosition();
+            float newX = currentPos.x + (predictedX - currentPos.x) * INTERP_FACTOR;
+            float newY = currentPos.y + (predictedY - currentPos.y) * INTERP_FACTOR;
+
+            // 旋转也做简单平滑
+            float newRot = trans.GetWorldRotation() + (sync.targetRotation - trans.GetWorldRotation()) * INTERP_FACTOR;
+
+            auto* rb = ecsRegistry.try_get<Rigidbody>(entity);
+            if (rb)
+            {
+                // 直接设置刚体位置（物理世界立即更新）
+                Physics::SetBodyTransform(entity, glm::vec2(newX, newY), newRot);
+                // 同步服务器速度，让物理引擎从当前位置继续平滑模拟
+                Physics::SetLinearVelocity(entity, glm::vec2(sync.targetVelX, sync.targetVelY));
+                // 可选：设置角速度（若服务器同步了角速度，否则忽略）
+                // float angVel = (newRot - trans.GetWorldRotation()) / Time::delta();
+                // Physics::SetAngularVelocity(entity, angVel);
+            }
+            else
+            {
+                trans.SetWorldPosition({ newX, newY });
+                trans.SetWorldRotation(newRot);
+            }
+
+
+            // 4. 如果已经很接近目标且无速度，停止插值
+            constexpr float STOP_THRESHOLD = 0.5f;
+            if (glm::abs(newX - predictedX) < STOP_THRESHOLD &&
+                glm::abs(newY - predictedY) < STOP_THRESHOLD &&
+                glm::abs(sync.targetVelX) < 0.01f && glm::abs(sync.targetVelY) < 0.01f)
+            {
+                sync.needInterpolation = false;
+            }
+        }
+#endif
+    }
+
     bool Scene::IsDescendant(entt::entity maybeChild, entt::entity maybeParent)
     {
         if (maybeChild == maybeParent) { return true; }
@@ -1235,6 +1644,7 @@ namespace Online::Game
     {
         static_cast<Scene*>(listener)->OnTriggerStay(event);
     }
+
     void Scene::OnFixedUpdateThunk(void* listener, const Online::Event::Event& event)
     {
         static_cast<Scene*>(listener)->OnPhysFixedUpdate(event);

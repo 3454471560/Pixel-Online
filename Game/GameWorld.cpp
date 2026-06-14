@@ -5,16 +5,31 @@
 #include<Time/Common/FuncTable.h>
 #include<Input/Common/FuncTable.h>
 #include<Task/Common/FuncTable.h>
+#include<Net/Common/WorldSnapshot.h>
+#include<Event/Common/FuncTable.h>
 
 #include<chrono>
 #include<thread> 
 
+#ifdef PIXEL_CLIENT
 #include<Script/LifeCycleFunc/Follow.h>
 #include<Script/LifeCycleFunc/Button.h>
 #include<Script/LifeCycleFunc/TextInput.h>
+#include<Net/Client/Common/FuncTable.h>
+#include<Net/Common/RespEntityDataPacket.h>
+#endif
+
+#ifdef PIXEL_SERVER
+#include<Net/Server/Common/FuncTable.h>
+#include<Net/Common/ReqEntityDataPacket.h>
+#include<Net/Common/RespEntityDataPacket.h>
+#include<Net/Common/EntityFullData.h>
+#endif // PIXEL_SERVER
+
 
 bool Online::Game::GameWorld::Initialize()
 {
+#ifdef PIXEL_CLIENT
 	BuildSettings["BeginScene"] = Core::GetExeDir() + "scenes\\begin.json";
 	BuildSettings["LoadingScene"] = Core::GetExeDir() + "scenes\\loading.json";
 	BuildSettings["StartScene"] = Core::GetExeDir() + "scenes\\start.json";
@@ -29,14 +44,14 @@ bool Online::Game::GameWorld::Initialize()
 
 	activeScene = ONLINE_NEW(Scene);
 
-	//if (activeScene)
-	//{
-	//	bool ok = activeScene->DeserializeFromFile(BuildSettings["BeginScene"], Online::Serialize::API::Json);
-	//	if (!ok)
-	//		Log::Error("Failed to load begin scene");
-	//}
+	if (activeScene)
+	{
+		bool ok = activeScene->DeserializeFromFile(BuildSettings["BeginScene"], Online::Serialize::API::Json);
+		if (!ok)
+			Log::Error("Failed to load begin scene");
+	}
 
-	GameObject* mainCamera = activeScene->CreateGameObject("Main Camera", "MainCamera");
+	/*GameObject* mainCamera = activeScene->CreateGameObject("Main Camera", "MainCamera");
 	Camera& camera = mainCamera->AddComponent<Camera>();
 	camera.SetRenderTarget(Online::Asset::TextureID::Tex_WindowBuffer);
 	camera.SetRenderSize({ 1280, 780 });
@@ -146,9 +161,9 @@ bool Online::Game::GameWorld::Initialize()
 	Sprite& butonesprite = butone->AddComponent<Sprite>();
 	butonesprite.SetTexture(Asset::TextureID::Tex_Flag);
 	butonesprite.SetGrid(6,1);
-	butone->AddScriptFunction(Script::ScriptFunctionID::Button);
+	butone->AddScriptFunction(Script::ScriptFunctionID::Button);*/
 
-	auto* buttonData = butone->GetScriptData<Script::Button::ButtonData>(Script::ScriptFunctionID::Button);
+	/*auto* buttonData = butone->GetScriptData<Script::Button::ButtonData>(Script::ScriptFunctionID::Button);
 	if (buttonData)
 	{
 		buttonData->SetOnClick([phys](Game::GameObject* sender) {
@@ -194,22 +209,81 @@ bool Online::Game::GameWorld::Initialize()
 			});
 	}
 
+	GameObject* bkFar = activeScene->CreateGameObject("Background Far");
+	bkFar->SetLayer(Render::RenderLayer::Default);
+	Transform* bkFarTrans = bkFar->GetComponent<Transform>();
+	bkFarTrans->SetLocalPosition({ 0,0 });
+	bkFarTrans->SetLocalScale({ 8,8 });
+	Sprite& bkFarSprite = bkFar->AddComponent<Sprite>();
+	bkFarSprite.SetAnchor(Core::Anchor::TopLeft);
+	bkFarSprite.SetTexture(Asset::TextureID::Tex_BackGround_Far);
+	bkFarSprite.SetRenderQueue(Render::RenderQueue::Background);
+	bkFar->AddScriptFunction(Script::ScriptFunctionID::FollowOverTime);
+	bkFar->GetScriptData<Script::Follow::FollowData>(Script::ScriptFunctionID::FollowOverTime)->SetTarget(mainCamera->GetComponent<Transform>());
+
 	GameObject* UICanvas = activeScene->CreateGameObject("Canvas");
 	Sprite& uisprite = UICanvas->AddComponent<Sprite>();
 	uisprite.SetTexture(Asset::TextureID::Tex_BackBuffer_1);
 	uisprite.SetAnchor(Core::Anchor::TopLeft);
 	UICanvas->AddScriptFunction(Script::ScriptFunctionID::FollowOverTime);
-	UICanvas->GetScriptData<Script::Follow::FollowData>(Script::ScriptFunctionID::FollowOverTime)->SetTarget(mainCamera->GetComponent<Transform>());
+	UICanvas->GetScriptData<Script::Follow::FollowData>(Script::ScriptFunctionID::FollowOverTime)->SetTarget(mainCamera->GetComponent<Transform>());*/
+#endif
+
+
+#ifdef PIXEL_SERVER
+ 
+    StepCompletedToken = Online::Event::Subscribe(
+	    Online::Event::EventType::PhysStepCompleted,
+	    [](void* listener, const Online::Event::Event&) {
+		    auto* gw = static_cast<GameWorld*>(listener);
+	    	gw->serverFrame++;
+		    if (gw->activeScene)
+			    gw->activeScene->BroadcastEntityStates();
+	    },
+	    this
+    );
+
+	serverWorld = ONLINE_NEW(Scene);
+	activeScene = serverWorld;
+
+	GameObject* tile = serverWorld->CreateGameObject("Tile");
+	Transform* tiletrans = tile->GetComponent<Transform>();
+	tiletrans->SetLocalScale({ 4,4 });
+	TileMap& tilemap = tile->AddComponent<TileMap>();
+	tilemap.SetTileMapID(Config::TileMapID::Map_01);
+	tilemap.SetRenderQueue(Render::RenderQueue::Background);
+	SyncTransform* syncTrans = tile->GetComponent<SyncTransform>();
+	syncTrans->OnDisable();
+#endif // PIXEL_SERVER
+
 	return true;
 }
 
 void Online::Game::GameWorld::Release()
 {
 	UnloadCurrentScene();
+	if (StepCompletedToken.type != Online::Event::EventType::Invalid)
+		Online::Event::UnSubscribe(StepCompletedToken);
 	if (loadingScene)
 	{
+		ONLINE_DELETE(loadingScene);
 		loadingScene = nullptr;
 	}
+	if(pendingScene)
+	{
+		ONLINE_DELETE(pendingScene);
+		pendingScene = nullptr;
+	}
+#ifdef PIXEL_SERVER
+	if (serverWorld)
+	{
+		ONLINE_DELETE(serverWorld);
+		serverWorld = nullptr;
+	}
+#endif
+	localPlayerNetId = -1;
+	isAsyncLoading = false;
+	pendingApplyScene = false;
 }
 
 void Online::Game::GameWorld::FixedUpdate()
@@ -220,6 +294,33 @@ void Online::Game::GameWorld::FixedUpdate()
 		activeScene->ProcessColliderSystem();
 		activeScene->ProcessColliderListSystem();
 	}
+
+#ifdef PIXEL_SERVER
+
+	auto& msgQueue = Net::Server::GetMessageQueue(Net::PacketType::JoinWorldRequest);
+	Net::NetMessage msg;
+
+	while (msgQueue.Pop(msg))
+	{
+		Net::JoinWorldRequest req;
+		if (req.DeserializeFromPayload(msg.body))
+		{
+			HandleJoinWorldRequest(msg.connectionId, req);
+		}
+	}
+
+	auto& reqDataQueue = Net::Server::GetMessageQueue(Net::PacketType::ReqEntityData);
+	Net::NetMessage reqMsg;
+	while (reqDataQueue.Pop(reqMsg))
+	{
+		Net::ReqEntityDataPacket req;
+		if (req.DeserializeFromPayload(reqMsg.body))
+		{
+			HandleEntityDataRequest(reqMsg.connectionId, req);
+		}
+	}
+#endif
+
 }
 
 void Online::Game::GameWorld::Update()
@@ -238,6 +339,55 @@ void Online::Game::GameWorld::LateUpdate()
 		pendingScene = nullptr;
 		isAsyncLoading = false;
 	}
+#ifdef PIXEL_CLIENT
+	auto& snapshotQueue = Net::Client::GetMessageQueue(Net::PacketType::WorldSnapshot);
+	Net::NetMessage snapshotMsg;
+
+	while (snapshotQueue.Pop(snapshotMsg))
+	{
+		const auto& snapshotBin = snapshotMsg.body;
+		Online::Log::Info("收到WorldSnapshot数据，总长度: " + std::to_string(snapshotBin.size()) + " bytes");
+
+		Net::WorldSnapshot snapshot;
+		if (!snapshot.DeserializeFromPayload(snapshotBin))
+		{
+			Online::Log::Error("解析WorldSnapshot业务包失败");
+			continue;
+		}
+		localPlayerNetId = snapshot.localPlayerNetId;
+		Online::Log::Info("本地玩家NetID: " + std::to_string(localPlayerNetId));
+
+		LoadScene(snapshot.sceneData);
+	}
+
+	if (activeScene)
+	{
+		auto& msgQueue = Net::Client::GetMessageQueue(Net::PacketType::EntityState);
+		Net::NetMessage msg;
+
+		while (msgQueue.Pop(msg))
+		{
+			Net::EntityStatePacket pkt;
+			if (pkt.DeserializeFromPayload(msg.body))
+			{
+				activeScene->ProcessEntityStatePacket(pkt);
+			}
+		}
+
+		auto& respQueue = Net::Client::GetMessageQueue(Net::PacketType::RespEntityData);
+		Net::NetMessage respMsg;
+		while (respQueue.Pop(respMsg))
+		{
+			Net::RespEntityDataPacket resp;
+			if (resp.DeserializeFromPayload(respMsg.body))
+			{
+				activeScene->CreateEntityFromFullData(resp.entityData);
+			}
+		}
+
+	}
+
+#endif
 
 	if (activeScene)
 	{
@@ -250,14 +400,15 @@ void Online::Game::GameWorld::LateUpdate()
 	if (activeScene)
 		activeScene->LateUpdate(Time::delta());
 
+
+#ifdef PIXEL_CLIENT	
+	if (activeScene)
+        activeScene->ProcessSyncTransform();
+#endif
 }
 
 void Online::Game::GameWorld::EndFrame()
 {
-	if(Input::GetKeyDown(Input::KeyCode::P))
-	{
-		SwitchSceneAfterLoadingAsync("TestScene");
-	}
 	if (activeScene) { activeScene->ProcessDelayDestroyQueue(); }
 }
 
@@ -270,14 +421,7 @@ void Online::Game::GameWorld::UnloadCurrentScene()
 
 	ONLINE_DELETE(activeScene);
 	activeScene = nullptr;
-
-	if (activeScene != loadingScene)
-	{
-		ONLINE_DELETE(activeScene);
-	}
-	activeScene = nullptr;
 	showLoadingScene = false;
-
 	Online::Log::Info("GameWorld: Unloaded current scene successfully");
 }
 
@@ -309,12 +453,52 @@ void Online::Game::GameWorld::LoadScene(const std::string& sceneName)
 			scene = nullptr;
 		}
 
+		if(pendingScene)
+		{
+			ONLINE_DELETE(pendingScene);
+			pendingScene = nullptr;
+		}
 		isAsyncLoading = false;
 		pendingScene = scene;
 
 		}, "SceneAsyncLoad" + sceneName);
 
 	return;
+}
+
+void Online::Game::GameWorld::LoadScene(const std::vector<std::byte>& sceneByte)
+{
+	if (isAsyncLoading)
+	{
+		Log::Warning("Already switching scene");
+		return;
+	}
+
+	isAsyncLoading = true;
+
+	Task::PostJob([this, sceneByte]() {
+
+		Scene* scene = ONLINE_NEW(Scene);
+		bool ok = scene->DeserializeFromBytes(sceneByte, Serialize::API::Json);
+
+		scene->SerializeToFile(Core::GetExeDir() + "scenes\\world.json");
+		if (!ok)
+		{
+			ONLINE_DELETE(scene);
+			scene = nullptr;
+		}
+
+		if(pendingScene)
+		{
+			ONLINE_DELETE(pendingScene);
+			pendingScene = nullptr;
+		}
+
+		isAsyncLoading = false;
+		pendingScene = scene;
+
+		}, "SceneAsyncLoadFormByte" );
+
 }
 
 void Online::Game::GameWorld::SwitchSceneAfterLoadingAsync(const std::string& newSceneName)
@@ -364,6 +548,12 @@ void Online::Game::GameWorld::SwitchSceneAfterLoadingAsync(const std::string& ne
 			std::this_thread::sleep_for(remainingTime);
 		}
 
+		if(pendingScene)
+		{
+			ONLINE_DELETE(pendingScene);
+			pendingScene = nullptr;
+		}
+
 		pendingScene = scene;
 		pendingApplyScene = true;
 
@@ -407,8 +597,13 @@ void Online::Game::GameWorld::SwitchSceneAsync(const std::string& newSceneName)
 			scene = nullptr;
 		}
 
+		if (pendingScene)
+		{
+			ONLINE_DELETE(pendingScene);
+			pendingScene = nullptr;
+		}
+
 		pendingScene = scene;
-		pendingApplyScene = true;
 
 		}, "SceneAsyncLoad" + newSceneName);
 
@@ -422,7 +617,183 @@ void Online::Game::GameWorld::DisplayPendingScene()
 		return;
 	}
 
-	ApplyLoadedScene(pendingScene);
+	pendingApplyScene = true;
+}
+
+void Online::Game::GameWorld::SendJoinWorldRequest(const std::string& playerName, uint32_t playerId)
+{
+#ifdef PIXEL_CLIENT
+	Net::JoinWorldRequest req;
+	req.playerName = playerName;
+	req.playerId = playerId;
+
+	std::vector<std::byte> payload = req.SerializePayload();
+
+	Net::Client::SendReliable(
+		payload,
+		Net::PacketType::JoinWorldRequest,
+		Net::ChannelType::ReliableOrdered
+	);
+
+	Online::Log::Info("Sent join world request: " + playerName);
+#endif
+}
+
+void Online::Game::GameWorld::HandleJoinWorldRequest(int connId, const Net::JoinWorldRequest& req)
+{
+#ifdef PIXEL_SERVER
+	GameObject* player = serverWorld->CreateGameObject(req.playerName, "Player");
+
+	static int x = 700;
+
+	player->GetTransform()->SetWorldPosition({ x, 800 });
+	player->GetTransform()->SetLocalScale({ 4, 4 });
+	x += 100;
+
+	Rigidbody& rb = player->AddComponent<Rigidbody>();
+	rb.SetGravityScale(1.5f);
+	rb.SetFixedRotation(true);
+	rb.SetBodyType(Physics::BodyType::Dynamic);
+
+	Collider& col = player->AddComponent<Collider>();
+	col.SetShape(Physics::ColliderShape::Capsule);
+	col.SetHalfSize({ 12.0f, 6.0f });
+	col.SetRadius(12.0f);
+	col.SetCategoryBits(Physics::PhysicsLayer::Player);	
+	col.SetDensity(1.0f);
+	col.SetFriction(0.3f);
+	col.SetRestitution(0.0f);
+
+	NetID* netId = player->GetComponent<NetID>();
+	assert(netId);  // 一定存在
+	netId->SetOwnerConnId(connId);
+	// netId->SetNetId(Generate());  // 已经生成过，不要重复生成！
+	netId->SetNeedSync(true);
+
+	player->AddScriptFunction(Script::ScriptFunctionID::MoveLeftRight);
+
+	SendWorldSnapshot(connId, netId->GetNetId());
+
+	Online::Log::Error("Player joined world: " + req.playerName + ", connId: " + std::to_string(connId));
+
+#endif
+}
+
+void Online::Game::GameWorld::SendWorldSnapshot(int connId, uint32_t localPlayerNetId)
+{
+#ifdef PIXEL_SERVER
+	std::vector<std::byte> payload;
+	serverWorld->SerializeToBytes(payload,Serialize::API::Json);
+
+	serverWorld->SerializeToFile(Core::GetExeDir() + "scenes\\world.json");
+
+	Online::Net::WorldSnapshot snapshot;
+	snapshot.localPlayerNetId = localPlayerNetId;
+	snapshot.sceneData = std::move(payload);
+	std::vector<std::byte> netPayload = snapshot.SerializePayload();
+
+	Net::Server::SendReliable(
+		connId,
+		netPayload,
+		Net::PacketType::WorldSnapshot,
+		Net::ChannelType::ReliableOrdered
+	);
+
+	Online::Log::Error(
+		"Sent world snapshot to connId: " + std::to_string(connId) +
+		", raw size: " + std::to_string(payload.size()) +
+		", net packet size: " + std::to_string(netPayload.size()) + " bytes"
+	); 
+#endif
+}
+
+void Online::Game::GameWorld::HandleEntityDataRequest(int connId, const Online::Net::ReqEntityDataPacket& req)
+{	
+#ifdef PIXEL_SERVER
+	Scene* scene = GetActiveScene();   // 服务端就是 serverWorld
+	if (!scene) return;
+
+	// 查找目标 NetID 对应的实体
+	auto netView = scene->ecsRegistry.view<NetID>();
+	entt::entity entity = entt::null;
+	for (auto e : netView)
+	{
+		if (netView.get<NetID>(e).GetNetId() == req.targetNetId)
+		{
+			entity = e;
+			break;
+		}
+	}
+	if (entity == entt::null) return;
+
+	// 填充完整实体数据
+	Net::EntityFullData full;
+	full.netId = req.targetNetId;
+
+	auto* netIdComp = scene->GetComponent<NetID>(entity);
+	if (netIdComp)
+		full.ownerConnId = netIdComp->GetOwnerConnId();
+
+	auto* tag = scene->GetComponent<Tag>(entity);
+	if (tag)
+	{
+		full.entityName = tag->GetName();
+		full.entityTag = tag->GetTag();
+	}
+
+	auto* trans = scene->GetComponent<Transform>(entity);
+	if (trans)
+	{
+		full.position = trans->GetWorldPosition();
+		full.scale = trans->GetWorldScale();
+		full.rotation = trans->GetWorldRotation();
+	}
+
+	auto* rb = scene->GetComponent<Rigidbody>(entity);
+	if (rb)
+	{
+		full.hasRigidbody = true;
+		full.gravityScale = rb->getGravityScale();
+		full.fixedRotation = rb->IsFixRotation();
+		full.bodyType = rb->GetBodyType();
+	}
+
+	auto* col = scene->GetComponent<Collider>(entity);
+	if (col)
+	{
+		full.hasCollider = true;
+		full.shape = col->GetShape();
+		full.halfSize = col->GetHalfSize();
+		full.radius = col->GetRadius();
+		full.density = col->GetDensity();
+		full.friction = col->GetFriction();
+		full.restitution = col->GetRestitution();
+		full.layerBits = col->GetCategoryBits();
+	}
+
+	// 收集脚本 ID
+	GameObject* go = scene->GetGameObject(entity);
+	if (go)
+	{
+		for (auto id : go->GetScriptIDSet())
+			full.scriptIds.push_back(static_cast<uint32_t>(id));
+	}
+
+	// 发送响应
+	Net::RespEntityDataPacket resp;
+	resp.entityData = std::move(full);
+	auto payload = resp.SerializePayload();
+
+	Net::Server::SendReliable(
+		connId,
+		payload,
+		Net::PacketType::RespEntityData,
+		Net::ChannelType::ReliableOrdered
+	);
+
+	Online::Log::Info("Sent EntityFullData for netId=" + std::to_string(req.targetNetId) +
+		" to connId=" + std::to_string(connId));
+#endif
 }
 
 void Online::Game::GameWorld::ResetLoadingSceneState()
@@ -435,7 +806,7 @@ void Online::Game::GameWorld::ApplyLoadedScene(Scene* newScene)
 	if (showLoadingScene && loadingScene)
 	{
 		showLoadingScene = false;
-	}
+	}	
 
 	if (!newScene)
 	{
@@ -446,4 +817,14 @@ void Online::Game::GameWorld::ApplyLoadedScene(Scene* newScene)
 	UnloadCurrentScene();
 	activeScene = newScene;
 	Log::Info("GameWorld: Scene switched successfully!");
+
+#ifdef PIXEL_CLIENT
+	GameObject* localPlayer = GetLocalPlayer();
+
+	if (localPlayer == nullptr)
+	{
+		Log::Warning("未找到本地玩家，摄像机不绑定跟随");
+		return;
+	}
+#endif
 }

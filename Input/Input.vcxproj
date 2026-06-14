@@ -110,10 +110,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;PIXEL_CLIENT;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir);$(SolutionDir)thirdparty\entt</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir);$(SolutionDir)thirdparty\enet\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\msgpack\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +130,7 @@
       </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir);$(SolutionDir)thirdparty\entt</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir);$(SolutionDir)thirdparty\enet\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\msgpack\include</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>

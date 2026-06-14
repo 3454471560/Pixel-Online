@@ -189,6 +189,18 @@ namespace Online::Game
             SetWorldMatrix(newWorld);
         }
 
+        inline void SetWorldScale(glm::vec2 newScale) noexcept
+        {
+            const glm::mat4& currentWorld = GetWorldMatrix();
+            glm::vec2 pos(currentWorld[3]);
+            float ccw = std::atan2f(currentWorld[0][1], currentWorld[0][0]);
+
+            glm::mat4 newWorld = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.0f))
+                * glm::rotate(glm::mat4(1.0f), ccw, glm::vec3(0.0f, 0.0f, 1.0f))
+                * glm::scale(glm::mat4(1.0f), glm::vec3(newScale, 1.0f));
+            SetWorldMatrix(newWorld);
+        }
+
         inline Transform* GetParent() const noexcept { return parentTransform; }
         inline const std::vector<Transform*>& GetChildren() const noexcept { return children; }
         inline size_t GetChildCount() const noexcept { return children.size(); }

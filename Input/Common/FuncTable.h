@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Context/Context.h>
-#include <Client/Context/ClientContext.h>
 #include <Input/Common/KeyCode.h>
 
 #include <glm.hpp>
@@ -14,6 +13,7 @@ namespace Online::Runtime
     struct FuncTable<Online::Input::InputMonitor>
     {
         friend class Online::Runtime::Client;
+        friend class Online::Runtime::Server;
     private:
         FuncTable() = default;
         ~FuncTable() = default;
@@ -25,6 +25,7 @@ namespace Online::Runtime
     public:
         bool Check() const
         {
+#ifdef PIXEL_CLIENT
             if (!OnGetKeyDown) { throw std::runtime_error("FuncTable miss [Input::GetKeyDown] Function!"); }
             if (!OnGetKeyPressed) { throw std::runtime_error("FuncTable miss [Input::GetKeyPressed] Function!"); }
             if (!OnGetKeyReleased) { throw std::runtime_error("FuncTable miss [Input::GetKeyReleased] Function!"); }
@@ -37,11 +38,19 @@ namespace Online::Runtime
             if (!OnGetCompositionText) { throw std::runtime_error("FuncTable miss [Input::GetCompositionText] Function!"); }
             if (!OnGetCompositionCursor) { throw std::runtime_error("FuncTable miss [Input::GetCompositionCursor] Function!"); }
             if (!OnSetTextInputRect) { throw std::runtime_error("FuncTable miss [Input::OnSetTextInputRect] Function!"); }
+#endif // PIXEL_CLIENT
+
+#ifdef PIXEL_SERVER
+            if (!OnIsClientKeyHold) { throw std::runtime_error("FuncTable miss [Input::OnIsClientKeyHold] Function!"); }
+            if (!OnConsumeClientTrigger) { throw std::runtime_error("FuncTable miss [Input::OnConsumeClientTrigger] Function!"); }
+#endif // PIXEL_SERVER
+
             return true;
         }
 
         void UnRegister() noexcept
         {
+#ifdef PIXEL_CLIENT
             OnGetKeyDown = nullptr;
             OnGetKeyPressed = nullptr;
             OnGetKeyReleased = nullptr;
@@ -54,6 +63,13 @@ namespace Online::Runtime
             OnGetCompositionText = nullptr;
             OnGetCompositionCursor = nullptr;
             OnSetTextInputRect = nullptr;
+#endif // PIXEL_CLIENT
+
+#ifdef PIXEL_SERVER
+            OnIsClientKeyHold = nullptr;
+            OnConsumeClientTrigger = nullptr;
+#endif // PIXEL_SERVER
+
         }
 
     public:
@@ -105,6 +121,16 @@ namespace Online::Runtime
         { 
             OnSetTextInputRect(x, y, w, h); 
         }
+
+        bool InvokeOnIsClientKeyHold(uint32_t NetId, Online::Input::KeyCode key)
+        {
+            return OnIsClientKeyHold(NetId, key);
+        }
+        bool InvokeOnConsumeClientTrigger(uint32_t NetId, Online::Input::KeyCode key)
+        {
+            return OnConsumeClientTrigger(NetId, key);
+        }
+
     private:
         bool (*OnGetKeyDown)(Online::Input::KeyCode) noexcept = nullptr;
         bool (*OnGetKeyPressed)(Online::Input::KeyCode) noexcept = nullptr;
@@ -118,6 +144,9 @@ namespace Online::Runtime
         std::string(*OnGetCompositionText)() noexcept = nullptr;
         int (*OnGetCompositionCursor)() noexcept = nullptr;
         void (*OnSetTextInputRect)(int, int, int, int) noexcept = nullptr;
+
+        bool (*OnIsClientKeyHold)(uint32_t, Online::Input::KeyCode);
+        bool (*OnConsumeClientTrigger)(uint32_t, Online::Input::KeyCode);
     };
 }
 
@@ -125,63 +154,72 @@ namespace Online::Input
 {
     inline bool GetKeyDown(Online::Input::KeyCode keyCode) noexcept
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnGetKeyDown(keyCode);
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnGetKeyDown(keyCode);
     }
 
     inline bool GetKeyPressed(Online::Input::KeyCode keyCode) noexcept
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnGetKeyPressed(keyCode);
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnGetKeyPressed(keyCode);
     }
 
     inline bool GetKeyReleased(Online::Input::KeyCode keyCode) noexcept
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnGetKeyReleased(keyCode);
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnGetKeyReleased(keyCode);
     }
 
     inline void ResetAllState() noexcept
     {
-        Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnResetAllState();
+        Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnResetAllState();
     }
 
     inline void ResetMouseState() noexcept
     {
-        Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnResetMouseState();
+        Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnResetMouseState();
     }
 
     inline glm::vec2 OnGetMousePosition() noexcept
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnGetMousePosition();
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnGetMousePosition();
     }
 
     inline std::string GetTextInputBuffer() noexcept
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnGetTextInputBuffer();
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnGetTextInputBuffer();
     }
 
     inline void StartTextInput() noexcept
     {
-        Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnStartTextInput();
+        Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnStartTextInput();
     }
 
     inline void StopTextInput() noexcept
     {
-        Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnStopTextInput();
+        Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnStopTextInput();
     }
 
     inline std::string GetCompositionText() noexcept
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnGetCompositionText();
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnGetCompositionText();
     }
 
     inline int GetCompositionCursor() noexcept
     {
-        return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Input::InputMonitor>().InvokeOnGetCompositionCursor();
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnGetCompositionCursor();
     }
 
     inline void SetTextInputRect(int x, int y, int w, int h) noexcept
     {
-        Online::Runtime::ClientContext::Instance()
-            .GetClientFuncTable<Online::Input::InputMonitor>()
-            .InvokeOnSetTextInputRect(x, y, w, h);
+        Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnSetTextInputRect(x, y, w, h);
     }
+
+    inline bool IsClientKeyHold(uint32_t NetId, Online::Input::KeyCode key)
+    {
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnIsClientKeyHold(NetId, key);
+    }
+
+    inline bool ConsumeClientTrigger(uint32_t NetId, Online::Input::KeyCode key)
+    {
+        return Online::Runtime::Context::Instance().GetFuncTable<Online::Input::InputMonitor>().InvokeOnConsumeClientTrigger(NetId, key);
+    }
+
 }

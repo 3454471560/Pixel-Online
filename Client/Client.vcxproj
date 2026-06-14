@@ -126,17 +126,17 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PIXEL_CLIENT;_DEBUG;_CONSOLE;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)thirdparty\enet\include;$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\SDL2_net\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\Box2D\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)thirdparty\enet\include;$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\Box2D\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)thirdparty\SDL2\lib\x64;$(SolutionDir)thirdparty\SDL2_net\lib\x64;$(SolutionDir)thirdparty\enet\lib\x64;$(SolutionDir)thirdparty\mimalloc\lib;$(SolutionDir)lib\$(Platform)\$(Configuration)\;$(SolutionDir)thirdparty\bullet\lib;$(SolutionDir)thirdparty\SDL2_image\lib\x64;$(SolutionDir)thirdparty\SDL2_ttf\lib\x64;$(SolutionDir)thirdparty\SDL2_mixer\lib\x64;$(SolutionDir)thirdparty\Box2D\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;SDL2_net.lib;SDL2_image.lib;SDL2_ttf.lib;SDL2_mixer.lib;enet.lib;Render.lib;Phys.lib;Task.lib;Context.lib;Event.lib;Input.lib;Net.lib;Log.lib;Config.lib;Serialize.lib;Thread.lib;Time.lib;Window.lib;Asset.lib;Game.lib;Script.lib;Winmm.lib;Ws2_32.lib;Iphlpapi.lib;mimalloc-debug.dll.lib;box2dd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)thirdparty\SDL2\lib\x64;$(SolutionDir)thirdparty\enet\lib\x64;$(SolutionDir)thirdparty\mimalloc\lib;$(SolutionDir)lib\$(Platform)\$(Configuration)\;$(SolutionDir)thirdparty\bullet\lib;$(SolutionDir)thirdparty\SDL2_image\lib\x64;$(SolutionDir)thirdparty\SDL2_ttf\lib\x64;$(SolutionDir)thirdparty\SDL2_mixer\lib\x64;$(SolutionDir)thirdparty\Box2D\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mimalloc-debug.dll.lib;SDL2.lib;SDL2_image.lib;SDL2_ttf.lib;SDL2_mixer.lib;enet.lib;Render.lib;Phys.lib;Task.lib;Context.lib;Event.lib;Input.lib;Net.lib;Log.lib;Config.lib;Serialize.lib;Thread.lib;Time.lib;Window.lib;Asset.lib;Game.lib;Script.lib;Winmm.lib;Ws2_32.lib;Iphlpapi.lib;box2dd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
     <PostBuildEvent>
@@ -156,18 +156,17 @@ xcopy /y /d /i /e "$(SolutionDir)thirdparty\Resource" "$(OutDir)Resource"</Comma
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>
-      </PreprocessorDefinitions>
+      <PreprocessorDefinitions>PIXEL_CLIENT;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)thirdparty\enet\include;$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\SDL2_net\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\Box2D\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)thirdparty\enet\include;$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\Box2D\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)thirdparty\SDL2\lib\x64;$(SolutionDir)thirdparty\SDL2_net\lib\x64;$(SolutionDir)thirdparty\enet\lib\x64;$(SolutionDir)thirdparty\mimalloc\lib;$(SolutionDir)lib\$(Platform)\$(Configuration)\;$(SolutionDir)thirdparty\bullet\lib;$(SolutionDir)thirdparty\SDL2_image\lib\x64;$(SolutionDir)thirdparty\SDL2_ttf\lib\x64;$(SolutionDir)thirdparty\SDL2_mixer\lib\x64;$(SolutionDir)thirdparty\Box2D\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;SDL2_net.lib;SDL2_image.lib;SDL2_ttf.lib;SDL2_mixer.lib;enet.lib;Render.lib;Phys.lib;Task.lib;Context.lib;Event.lib;Input.lib;Net.lib;Log.lib;Config.lib;Serialize.lib;Thread.lib;Time.lib;Window.lib;Asset.lib;Game.lib;Script.lib;Winmm.lib;Ws2_32.lib;Iphlpapi.lib;mimalloc.lib;box2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)thirdparty\SDL2\lib\x64;$(SolutionDir)thirdparty\enet\lib\x64;$(SolutionDir)thirdparty\mimalloc\lib;$(SolutionDir)lib\$(Platform)\$(Configuration)\;$(SolutionDir)thirdparty\bullet\lib;$(SolutionDir)thirdparty\SDL2_image\lib\x64;$(SolutionDir)thirdparty\SDL2_ttf\lib\x64;$(SolutionDir)thirdparty\SDL2_mixer\lib\x64;$(SolutionDir)thirdparty\Box2D\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mimalloc.lib;SDL2.lib;SDL2_image.lib;SDL2_ttf.lib;SDL2_mixer.lib;enet.lib;Render.lib;Phys.lib;Task.lib;Context.lib;Event.lib;Input.lib;Net.lib;Log.lib;Config.lib;Serialize.lib;Thread.lib;Time.lib;Window.lib;Asset.lib;Game.lib;Script.lib;Winmm.lib;Ws2_32.lib;Iphlpapi.lib;box2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
     <PostBuildEvent>

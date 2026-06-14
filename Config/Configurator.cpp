@@ -18,30 +18,35 @@ void Online::Config::Configurator::Release()
 }
 bool Online::Config::Configurator::Import()
 {
-	std::filesystem::path path = std::filesystem::path(Online::Core::GetExeDir()) / configFileName;
-	if (!std::filesystem::exists(path)) { throw std::runtime_error("缺失客户端配置文件"); }
-	if (!configInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("客户端配置文件加载失败"); }
-	path.clear();path = std::filesystem::path(Online::Core::GetExeDir()) / animationsFileName;
-	if (!animationsInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("缺失动画配置文件"); }
 	tileMapsInfo.tileMaps.resize(4);
 	for (int i = 0; i < 4; ++i) {
 		std::filesystem::path map_path = std::filesystem::path(Online::Core::GetExeDir()) / Maps[i];
-		if (!std::filesystem::exists(map_path)) { throw std::runtime_error("缺失地图配置文件 ");}
-		tileMapsInfo.tileMaps[i].deserialize(map_path.string());}
+		if (!std::filesystem::exists(map_path)) { throw std::runtime_error("缺失地图配置文件 "); }
+		tileMapsInfo.tileMaps[i].deserialize(map_path.string());
+	}
+#ifdef PIXEL_CLIENT
+	std::filesystem::path path = std::filesystem::path(Online::Core::GetExeDir()) / configFileName;
+	if (!std::filesystem::exists(path)) { throw std::runtime_error("缺失客户端配置文件"); }
+	if (!configInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("客户端配置文件加载失败"); }
+	path.clear(); path = std::filesystem::path(Online::Core::GetExeDir()) / animationsFileName;
+	if (!animationsInfo.DeserializeFromFile(path, Online::Serialize::API::Json)) { throw std::runtime_error("缺失动画配置文件"); }
 
 	path = std::filesystem::path(Online::Core::GetExeDir()) / charsetFileName;
 	if (!std::filesystem::exists(path)) { throw std::runtime_error("缺失字符集配置文件 " + path.string()); }
-	std::string fileContent;Online::Core::ReadFileToString(path, fileContent);
+	std::string fileContent; Online::Core::ReadFileToString(path, fileContent);
 	if (!fileContent.empty()) {
 		charset = Core::Utf8ToUtf32(fileContent);
 		std::u32string uniqueChars;
 		std::unordered_set<char32_t> seen;
 		for (char32_t ch : charset) {
 			if (seen.insert(ch).second)
-				uniqueChars.push_back(ch);}
+				uniqueChars.push_back(ch);
+		}
 		charset = std::move(uniqueChars);
 		BuildCharLayout();
 	}
+#endif // PIXEL_CLIENT
+	
 	return true;
 }
 bool Online::Config::Configurator::Export()

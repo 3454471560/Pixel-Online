@@ -143,4 +143,8 @@ namespace Online::Event
     struct PhysFixedUpdateEventArgs : public EventArgs
     {
     };
+
+    struct PhysStepCompletedEventArgs : public EventArgs
+    {
+    };
 }

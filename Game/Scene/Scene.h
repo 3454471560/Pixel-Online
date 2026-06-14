@@ -5,6 +5,7 @@
 #include<Serialize/Serializable.h>
 #include<Event/Common/EventToken.h>
 #include<Event/Common/Event.h>
+#include<Net/Common/EntityStatePacket.h>
 #include<Game/Component/Component.h>
 #include<Game/Component/Tag.h>
 #include<Game/Component/Parent.h>
@@ -15,6 +16,7 @@
 #include<Game/Component/Camera.h>
 #include<Game/Component/Collider.h>
 #include<Game/Component/Rigidbody.h>
+#include<Net/Common/EntityFullData.h>
 
 #include<entt/entt.hpp>
 #include<glm.hpp>
@@ -41,6 +43,7 @@ namespace Online::Game
         void Serialize(Online::Serialize::SerializeContext& ctx) const override;
         void Deserialize(const Online::Serialize::DeserializeContext& ctx) override;
 
+        void InitMainCamera();
     public:
         entt::entity GetRootEntity() const noexcept;
         GameObject* GetRootGameObject() const noexcept;
@@ -184,6 +187,14 @@ namespace Online::Game
         {
             return ecsRegistry.view<Components...>(exclude);
         }
+
+    public:
+        void CollectSyncEntities(std::vector<Net::EntityStateData>& outStates);
+        void BroadcastEntityStates();
+        void ProcessEntityStatePacket(const Net::EntityStatePacket& pkt);
+		void RequestEntityData(uint32_t netId);
+
+        void CreateEntityFromFullData(const Online::Net::EntityFullData& data);
     private:
         void Update(float deltaTime);
         void LateUpdate(float deltaTime);
@@ -197,6 +208,8 @@ namespace Online::Game
         void ProcessColliderSystem();
         void ProcessColliderListSystem();
         void ProcessAnimatorControllerSystem(float deltaTime);
+
+        void ProcessSyncTransform();
 
         bool IsDescendant(entt::entity maybeChild, entt::entity maybeParent);
         void UnlinkFromCurrent(entt::entity entity);
@@ -213,7 +226,6 @@ namespace Online::Game
         static void OnTriggerExitThunk(void* listener, const Online::Event::Event& event);
         static void OnTriggerStayThunk(void* listener, const Online::Event::Event& event);
         static void OnFixedUpdateThunk(void* listener, const Online::Event::Event& event);
-
     public:
         template<typename T>
         T* GetComponent(entt::entity entity)
@@ -245,5 +257,8 @@ namespace Online::Game
         Online::Event::EventToken triggerExitToken;
         Online::Event::EventToken triggerStayToken;
         Online::Event::EventToken FixedUpdateToken;
+
+        bool CameraInited = false;
+		bool IsEnableSync = false;
     };
 }

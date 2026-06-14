@@ -10,10 +10,12 @@ namespace Online::Time { class Chronometer; }
 namespace Online::Log { class Logger; }
 namespace Online::Thread { class ThreadTracker; }
 namespace Online::Event { class EventDispatcher; }
+namespace Online::Config { class Configurator; }
 namespace Online::Task { class TaskScheduler; }
 namespace Online::Physics { class PhysicsSimulator; }
 namespace Online::Game { class GameWorld; }
 namespace Online::Script { class LifeCycleTable; }
+namespace Online::Input { class InputMonitor; }
 
 namespace Online::Runtime
 {
@@ -36,7 +38,10 @@ namespace Online::Runtime
 			Online::Runtime::Module<Online::Time::Chronometer>* Chronometer = nullptr;
 			Online::Runtime::Module<Online::Physics::PhysicsSimulator>* PhysicsSimulator = nullptr;
 			Online::Runtime::Module<Online::Task::TaskScheduler>* TaskScheduler = nullptr;
+			Online::Runtime::Module<Online::Game::GameWorld>* GameWorld = nullptr;
 			Online::Runtime::Module<Online::Script::LifeCycleTable>* LifeCycleTable = nullptr;
+			Online::Runtime::Module<Online::Config::Configurator>* Configurator = nullptr;
+			Online::Runtime::Module<Online::Input::InputMonitor>* InputMonitor = nullptr;
 
 			inline bool Check() const
 			{
@@ -46,7 +51,10 @@ namespace Online::Runtime
 				if (!ThreadTracker) { throw std::runtime_error("Context [Module] miss [ThreadTracker]"); }
 				if (!PhysicsSimulator) { throw std::runtime_error("Context [Module] miss [PhysicsSimulator]"); }
 				if (!TaskScheduler) { throw std::runtime_error("Context [Module] miss [TaskScheduler]"); }
+				if (!Configurator) { throw std::runtime_error("Context [Module] miss [Configurator]"); }
+				if (!GameWorld) { throw std::runtime_error("Context [Module] miss [GameWorld]"); }
 				if (!LifeCycleTable) { throw std::runtime_error("Context [Module] miss [LifeCycleTable]"); }
+				if (!InputMonitor) { throw std::runtime_error("Context [Module] miss [InputMonitor]"); }
 
 				return true;
 			}
@@ -58,7 +66,10 @@ namespace Online::Runtime
 				Logger = nullptr;
 				ThreadTracker = nullptr;
 				TaskScheduler = nullptr;
+				Configurator = nullptr;
+				GameWorld = nullptr;
 				LifeCycleTable = nullptr;
+				InputMonitor = nullptr;
 			}
 		};
 		struct FuncTables
@@ -69,7 +80,11 @@ namespace Online::Runtime
 			Online::Runtime::FuncTable<Online::Event::EventDispatcher>* EventDispatcher = nullptr;
 			Online::Runtime::FuncTable<Online::Task::TaskScheduler>* TaskScheduler = nullptr;
 			Online::Runtime::FuncTable<Online::Physics::PhysicsSimulator>* PhysicsSimulator = nullptr;
+			Online::Runtime::FuncTable<Online::Config::Configurator>* Configurator = nullptr;
 			Online::Runtime::FuncTable<Online::Script::LifeCycleTable>* LifeCycleTable = nullptr;
+			Online::Runtime::FuncTable<Online::Game::GameWorld>* GameWorld = nullptr;
+			Online::Runtime::FuncTable<Online::Input::InputMonitor>* InputMonitor = nullptr;
+
 
 			inline bool Check() const
 			{
@@ -77,9 +92,12 @@ namespace Online::Runtime
 				if (!Logger) { throw std::runtime_error("Context [FuncTable] miss [Logger]"); }
 				if (!ThreadTracker) { throw std::runtime_error("Context [FuncTable] miss [ThreadTracker]"); }
 				if (!Chronometer) { throw std::runtime_error("Context [FuncTable] miss [Chronometer]"); }
+				if (!Configurator) { throw std::runtime_error("Context [FuncTable] miss [Configurator]"); }
 				if (!TaskScheduler) { throw std::runtime_error("Context [FuncTable] miss [TaskScheduler]"); }
 				if (!PhysicsSimulator) { throw std::runtime_error("Context [FuncTable] miss [PhysicsSimulator]"); }
+				if (!GameWorld) { throw std::runtime_error("Context [FuncTable] miss [GameWorld]"); }
 				if (!LifeCycleTable) { throw std::runtime_error("Context [FuncTable] miss [LifeCycleTable]"); }
+				if (!InputMonitor) { throw std::runtime_error("Context [FuncTable] miss [InputMonitor]"); }
 
 				return true;
 			}
@@ -91,7 +109,10 @@ namespace Online::Runtime
 				EventDispatcher = nullptr;
 				TaskScheduler = nullptr;
 				PhysicsSimulator = nullptr;
+				Configurator = nullptr;
+				GameWorld = nullptr;
 				LifeCycleTable = nullptr;
+				InputMonitor = nullptr;
 			}
 		};
 
@@ -102,29 +123,6 @@ namespace Online::Runtime
 		Context& operator=(Context&&) = delete;
 
 	public:
-		template<typename T>
-		inline void RegisterCommonModule(Module<T>* module) noexcept
-		{
-			if constexpr (std::is_same_v<T, Online::Log::Logger>) { commonModules.Logger = module; }
-			else if constexpr (std::is_same_v<T, Online::Event::EventDispatcher>) { commonModules.EventDispatcher = module; }
-			else if constexpr (std::is_same_v<T, Online::Thread::ThreadTracker>) { commonModules.ThreadTracker = module; }
-			else if constexpr (std::is_same_v<T, Online::Time::Chronometer>) { commonModules.Chronometer = module; }
-			else if constexpr (std::is_same_v<T, Online::Physics::PhysicsSimulator>) { commonModules.PhysicsSimulator = module; }
-			else if constexpr (std::is_same_v<T, Online::Task::TaskScheduler>) { commonModules.TaskScheduler = module; }
-			else if constexpr (std::is_same_v<T, Online::Script::LifeCycleTable>) { commonModules.LifeCycleTable = module; }
-		}
-
-		template<typename T>
-		inline void RegisterCommonFuncTable(FuncTable<T>* table) noexcept
-		{
-			if constexpr (std::is_same_v<T, Online::Time::Chronometer>) { commonFuncTables.Chronometer = table; }
-			else if constexpr (std::is_same_v<T, Online::Log::Logger>) { commonFuncTables.Logger = table; }
-			else if constexpr (std::is_same_v<T, Online::Thread::ThreadTracker>) { commonFuncTables.ThreadTracker = table; }
-			else if constexpr (std::is_same_v<T, Online::Event::EventDispatcher>) { commonFuncTables.EventDispatcher = table; }
-			else if constexpr (std::is_same_v<T, Online::Task::TaskScheduler>) { commonFuncTables.TaskScheduler = table; }
-			else if constexpr (std::is_same_v<T, Online::Physics::PhysicsSimulator>) { commonFuncTables.PhysicsSimulator = table; }
-			else if constexpr (std::is_same_v<T, Online::Script::LifeCycleTable>) { commonFuncTables.LifeCycleTable = table; }
-		}
 
 		template<typename T>
 		inline Online::Runtime::Module<T>& GetModule() const noexcept
@@ -137,7 +135,10 @@ namespace Online::Runtime
 				std::is_same_v<T, Online::Time::Chronometer> ||
 				std::is_same_v<T, Online::Physics::PhysicsSimulator> ||
 				std::is_same_v<T, Online::Task::TaskScheduler> ||
-				std::is_same_v<T, Online::Script::LifeCycleTable>
+				std::is_same_v<T, Online::Game::GameWorld> ||
+				std::is_same_v<T, Online::Config::Configurator> ||
+				std::is_same_v<T, Online::Script::LifeCycleTable> ||
+				std::is_same_v<T, Online::Input::InputMonitor>
 				, "Context::GetModule<T>(): T must be a valid Runtime Module Type");
 
 			if constexpr (std::is_same_v<T, Online::Log::Logger>) { return *commonModules.Logger; }
@@ -145,8 +146,11 @@ namespace Online::Runtime
 			else if constexpr (std::is_same_v<T, Online::Thread::ThreadTracker>) { return *commonModules.ThreadTracker; }
 			else if constexpr (std::is_same_v<T, Online::Time::Chronometer>) { return *commonModules.Chronometer; }
 			else if constexpr (std::is_same_v<T, Online::Physics::PhysicsSimulator>) { return *commonModules.PhysicsSimulator; }
+			else if constexpr (std::is_same_v<T, Online::Game::GameWorld>) { return *commonModules.GameWorld; }
+			else if constexpr (std::is_same_v<T, Online::Config::Configurator>) { return *commonModules.Configurator; }
 			else if constexpr (std::is_same_v<T, Online::Task::TaskScheduler>) { return *commonModules.TaskScheduler; }
 			else if constexpr (std::is_same_v<T, Online::Script::LifeCycleTable>) { return *commonModules.LifeCycleTable; }
+			else if constexpr (std::is_same_v<T, Online::Input::InputMonitor>) { return *commonModules.InputMonitor; }
 		}
 
 		template<typename T>
@@ -158,8 +162,11 @@ namespace Online::Runtime
 				std::is_same_v<T, Online::Thread::ThreadTracker> ||
 				std::is_same_v<T, Online::Event::EventDispatcher> ||
 				std::is_same_v<T, Online::Task::TaskScheduler> ||
+				std::is_same_v<T, Online::Game::GameWorld> ||
+				std::is_same_v<T, Online::Config::Configurator> ||
 				std::is_same_v<T, Online::Physics::PhysicsSimulator> ||
-				std::is_same_v<T, Online::Script::LifeCycleTable>
+				std::is_same_v<T, Online::Script::LifeCycleTable> ||
+				std::is_same_v<T, Online::Input::InputMonitor>
 
 				, "Context::GetFuncTable<T>(): T must be a valid Runtime FuncTable Type");
 
@@ -167,9 +174,12 @@ namespace Online::Runtime
 			else if constexpr (std::is_same_v<T, Online::Log::Logger>) { return *commonFuncTables.Logger; }
 			else if constexpr (std::is_same_v<T, Online::Thread::ThreadTracker>) { return *commonFuncTables.ThreadTracker; }
 			else if constexpr (std::is_same_v<T, Online::Event::EventDispatcher>) { return *commonFuncTables.EventDispatcher; }
+			else if constexpr (std::is_same_v<T, Online::Config::Configurator>) { return *commonFuncTables.Configurator; }
 			else if constexpr (std::is_same_v<T, Online::Task::TaskScheduler>) { return *commonFuncTables.TaskScheduler; }
+			else if constexpr (std::is_same_v<T, Online::Game::GameWorld>) { return *commonFuncTables.GameWorld; }
 			else if constexpr (std::is_same_v<T, Online::Physics::PhysicsSimulator>) { return *commonFuncTables.PhysicsSimulator; }
 			else if constexpr (std::is_same_v<T, Online::Script::LifeCycleTable>) { return *commonFuncTables.LifeCycleTable; }
+			else if constexpr (std::is_same_v<T, Online::Input::InputMonitor>) { return *commonFuncTables.InputMonitor; }
 		}
 
 		inline bool Check() const

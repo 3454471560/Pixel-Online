@@ -72,7 +72,7 @@ namespace Online::Config
 
 			Online::Window::Platform WindowPlatform = Online::Window::Platform::SDL;
 			int32_t WindowWidth = 1280;
-			int32_t WindowHeight = 720;
+			int32_t WindowHeight = 780;
 
 		public:
 			void Serialize(Online::Serialize::SerializeContext& context) const override;

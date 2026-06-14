@@ -7,72 +7,130 @@
 
 namespace Online::Runtime
 {
-	template<>
-	struct FuncTable<Online::Net::Server::NetworkServer>
-	{
-		friend class Online::Runtime::Server;
-	private:
-		FuncTable() = default;
-		~FuncTable() = default;
+    template<>
+    struct FuncTable<Online::Net::Server::HybridServer>
+    {
+        friend class Online::Runtime::Server;
+    private:
+        FuncTable() = default;
+        ~FuncTable() = default;
 
-	public:
-		FuncTable(const FuncTable&) = delete;
-		FuncTable& operator=(const FuncTable&) = delete;
-		FuncTable(FuncTable&&) = delete;
-		FuncTable& operator=(FuncTable&&) = delete;
+    public:
+        FuncTable(const FuncTable&) = delete;
+        FuncTable& operator=(const FuncTable&) = delete;
+        FuncTable(FuncTable&&) = delete;
+        FuncTable& operator=(FuncTable&&) = delete;
 
-	public:
-		inline bool Check() const
-		{
-			if (!OnGetMessageQueue) { throw std::runtime_error("Delegates miss [Net::OnGetMessageQueue] Function!"); }
-			if (!OnSend) { throw std::runtime_error("Delegates miss [Net::Send] Function!"); }
-			if (!OnBroadcast) { throw std::runtime_error("Delegates miss [Net::Broadcast] Function!"); }
-			return true;
-		}
-		inline void UnRegister() noexcept
-		{
-			OnGetMessageQueue = nullptr;
-			OnSend = nullptr;
-			OnBroadcast = nullptr;
-		}
+    public:
+        inline bool Check() const
+        {
+            if (!OnGetMessageQueue) { throw std::runtime_error("Delegates miss [OnGetMessageQueue] Function!"); }
+            if (!OnSendReliable) { throw std::runtime_error("Delegates miss [OnSendReliable] Function!"); }
+            if (!OnSendUnreliable) { throw std::runtime_error("Delegates miss [OnSendUnreliable] Function!"); }
+            if (!OnBroadcastReliable) { throw std::runtime_error("Delegates miss [OnBroadcastReliable] Function!"); }
+            if (!OnBroadcastUnreliable) { throw std::runtime_error("Delegates miss [OnBroadcastUnreliable] Function!"); }
+            return true;
+        }
 
-	public:
-		inline Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& InvokeOnGetMessageQueue() noexcept
-		{
-			return OnGetMessageQueue();
-		}
+        inline void UnRegister() noexcept
+        {
+            OnGetMessageQueue = nullptr;
+            OnSendReliable = nullptr;
+            OnSendUnreliable = nullptr;
+            OnBroadcastReliable = nullptr;
+            OnBroadcastUnreliable = nullptr;
+        }
 
-		inline bool InvokeOnSend(int connectionId, std::span<const std::byte> data) noexcept
-		{
-			return OnSend(connectionId, data);
-		}
+    public:
+        inline Online::Core::ThreadSafeQueue<Online::Net::NetMessage>&
+            InvokeOnGetMessageQueue(Online::Net::PacketType type) noexcept
+        {
+            return OnGetMessageQueue(type);
+        }
 
-		inline bool InvokeOnBroadcast(std::span<const std::byte> data) noexcept
-		{
-			return OnBroadcast(data);
-		}
+        inline bool InvokeOnSendReliable(int connectionId,
+            std::span<const std::byte> data,
+            Online::Net::PacketType type,
+            Online::Net::ChannelType channel) noexcept
+        {
+            return OnSendReliable(connectionId, data, type, channel);
+        }
 
-	private:
-		Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& (*OnGetMessageQueue)() noexcept = nullptr;
-		bool (*OnSend)(int, std::span<const std::byte>) noexcept = nullptr;
-		bool (*OnBroadcast)(std::span<const std::byte>) noexcept = nullptr;
-	};
+        inline bool InvokeOnSendUnreliable(int connectionId,
+            std::span<const std::byte> data,
+            Online::Net::PacketType type,
+            Online::Net::ChannelType channel) noexcept
+        {
+            return OnSendUnreliable(connectionId, data, type, channel);
+        }
+
+        inline bool InvokeOnBroadcastReliable(std::span<const std::byte> data,
+            Online::Net::PacketType type,
+            Online::Net::ChannelType channel) noexcept
+        {
+            return OnBroadcastReliable(data, type, channel);
+        }
+
+        inline bool InvokeOnBroadcastUnreliable(std::span<const std::byte> data,
+            Online::Net::PacketType type,
+            Online::Net::ChannelType channel) noexcept
+        {
+            return OnBroadcastUnreliable(data, type, channel);
+        }
+
+    private:
+        Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& (*OnGetMessageQueue)(Online::Net::PacketType) noexcept = nullptr;
+        bool (*OnSendReliable)(int, std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
+        bool (*OnSendUnreliable)(int, std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
+        bool (*OnBroadcastReliable)(std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
+        bool (*OnBroadcastUnreliable)(std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
+    };
 }
 
 namespace Online::Net::Server
 {
-	inline Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& GetMessageQueue() noexcept
-	{
-		return Online::Runtime::ServerContext::Instance().GetServerFuncTable<Online::Net::Server::NetworkServer>().InvokeOnGetMessageQueue();
-	}
+    inline Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& GetMessageQueue(PacketType type) noexcept
+    {
+        return Online::Runtime::ServerContext::Instance()
+            .GetServerFuncTable<Online::Net::Server::HybridServer>()
+            .InvokeOnGetMessageQueue(type);
+    }
 
-	inline bool Send(int connectionId, std::span<const std::byte> data) noexcept
-	{
-		return Online::Runtime::ServerContext::Instance().GetServerFuncTable<Online::Net::Server::NetworkServer>().InvokeOnSend(connectionId, data);
-	}
+    inline bool SendReliable(int connectionId,
+        std::span<const std::byte> data,
+        PacketType type,
+        ChannelType channel = ChannelType::ReliableOrdered) noexcept
+    {
+        return Online::Runtime::ServerContext::Instance()
+            .GetServerFuncTable<Online::Net::Server::HybridServer>()
+            .InvokeOnSendReliable(connectionId, data, type, channel);
+    }
 
-	inline bool Send(std::span<const std::byte> data) noexcept
-	{
-		return Online::Runtime::ServerContext::Instance().GetServerFuncTable<Online::Net::Server::NetworkServer>().InvokeOnBroadcast(data);
-	}
+    inline bool SendUnreliable(int connectionId,
+        std::span<const std::byte> data,
+        PacketType type,
+        ChannelType channel = ChannelType::Unreliable) noexcept
+    {
+        return Online::Runtime::ServerContext::Instance()
+            .GetServerFuncTable<Online::Net::Server::HybridServer>()
+            .InvokeOnSendUnreliable(connectionId, data, type, channel);
+    }
+
+    inline bool BroadcastReliable(std::span<const std::byte> data,
+        PacketType type,
+        ChannelType channel = ChannelType::ReliableOrdered) noexcept
+    {
+        return Online::Runtime::ServerContext::Instance()
+            .GetServerFuncTable<Online::Net::Server::HybridServer>()
+            .InvokeOnBroadcastReliable(data, type, channel);
+    }
+
+    inline bool BroadcastUnreliable(std::span<const std::byte> data,
+        PacketType type,
+        ChannelType channel = ChannelType::Unreliable) noexcept
+    {
+        return Online::Runtime::ServerContext::Instance()
+            .GetServerFuncTable<Online::Net::Server::HybridServer>()
+            .InvokeOnBroadcastUnreliable(data, type, channel);
+    }
 }

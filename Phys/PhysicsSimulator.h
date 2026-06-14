@@ -103,6 +103,8 @@ namespace Online::Physics
         void ApplyLinearImpulse(entt::entity entity, const glm::vec2& impulse);
         void ApplyLinearImpulseAtPoint(entt::entity entity, const glm::vec2& impulse, const glm::vec2& worldPoint);
 
+        void SetBodyTransform(entt::entity entity, const glm::vec2& position, float angle);
+
         bool IsAwake(entt::entity entity) const;
         void SetAwake(entt::entity entity, bool awake);
 
@@ -132,6 +134,8 @@ namespace Online::Physics
         RayCastHit RayCastTool(glm::vec2 origin, glm::vec2 direction, float maxDistance, uint16_t layerMask, bool includeTriggers) const;
 
         static float RayCastToolCallback(b2ShapeId shapeId, b2Vec2 point, b2Vec2 normal, float fraction, void* context);
+
+        void PhysicsStepCompleted();
     private:
         b2WorldId worldId = b2_nullWorldId;
         std::unordered_map<entt::entity, b2BodyId*> entityBodyPtrs;

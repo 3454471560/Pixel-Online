@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Client\NetworkClient.h">
+    <ClInclude Include="Client\HybridClient.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Server\NetworkServer.h">
+    <ClInclude Include="Server\HybridServer.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Common\NetCommon.h">
@@ -30,12 +30,33 @@
     <ClInclude Include="Client\Common\FuncTable.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Common\EntityStatePacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\JoinWorldPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\WorldSnapshot.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\EntityFullData.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ReqEntityDataPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\RespEntityDataPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\PlayerInputPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Client\NetworkClient.cpp">
+    <ClCompile Include="Client\HybridClient.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Server\NetworkServer.cpp">
+    <ClCompile Include="Server\HybridServer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

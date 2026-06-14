@@ -382,10 +382,10 @@ namespace Online::Serialize
         return out;
     }
 
-    Blob CJsonSerializeContext::ToBytes() const
+    std::vector<std::byte> CJsonSerializeContext::ToBytes() const
     {
         const std::string s = ToString();
-        Blob out;
+        std::vector<std::byte> out;
         out.resize(s.size());
         std::memcpy(out.data(), s.data(), s.size());
         return out;

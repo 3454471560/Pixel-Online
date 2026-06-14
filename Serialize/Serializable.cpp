@@ -125,7 +125,7 @@ namespace Online::Serialize
         }
     }
 
-    bool Serializable::SerializeToBytes(Blob& out, API api) const
+    bool Serializable::SerializeToBytes(std::vector<std::byte>& out, API api) const
     {
         auto context = CreateSerializeContext(api);
         if (!context)

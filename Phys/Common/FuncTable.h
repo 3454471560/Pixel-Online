@@ -42,6 +42,7 @@ namespace Online::Runtime
             if (!OnAddDebugRay) { throw std::runtime_error("FuncTable miss [Physics::AddDebugRay] Function!"); }
             if (!OnRayCast) { throw std::runtime_error("FuncTable miss [Physics::OnRayCast] Function!"); }
             if (!OnRayCastLayer) { throw std::runtime_error("FuncTable miss [Physics::OnRayCastLayer] Function!"); }
+            if (!OnSetBodyTransform) { throw std::runtime_error("FuncTable miss [Physics::SetBodyTransform] Function!"); }
             return true;
         }
         void UnRegister() noexcept
@@ -61,6 +62,7 @@ namespace Online::Runtime
             OnAddDebugRay = nullptr;
             OnRayCast = nullptr;
             OnRayCastLayer = nullptr;
+            OnSetBodyTransform = nullptr;
         }
 
     public:
@@ -124,6 +126,10 @@ namespace Online::Runtime
         {
             return OnRayCastLayer(origin, angleRad, maxDistance, outHit, layerMask, includeTriggers);
         }
+        void InvokeOnSetBodyTransform(entt::entity entity, const glm::vec2& position, float angle) const
+        {
+            OnSetBodyTransform(entity, position, angle);
+        }
     public:
         void(*OnRemoveBody)(entt::entity) = nullptr;
         void(*OnSetGravity)(glm::vec2) = nullptr;
@@ -140,6 +146,7 @@ namespace Online::Runtime
         void(*OnAddDebugRay)(glm::vec2, glm::vec2, float, glm::vec4) = nullptr;
         bool(*OnRayCast)(glm::vec2, glm::vec2, float, Physics::RayCastHit&) = nullptr;
         bool(*OnRayCastLayer)(glm::vec2, glm::vec2, float, Physics::RayCastHit&, uint16_t, bool) = nullptr;
+        void(*OnSetBodyTransform)(entt::entity, const glm::vec2&, float) = nullptr;
     };
 }
 
@@ -203,6 +210,11 @@ namespace Online::Physics
     inline void SetAwake(entt::entity entity, bool awake)
     {
         Online::Runtime::Context::Instance().GetFuncTable<PhysicsSimulator>().InvokeOnSetAwake(entity, awake);
+    }
+
+    inline void SetBodyTransform(entt::entity entity, const glm::vec2& position, float angle)
+    {
+        Online::Runtime::Context::Instance().GetFuncTable<PhysicsSimulator>().InvokeOnSetBodyTransform(entity, position, angle);
     }
 
     inline void AddDebugRay(glm::vec2 origin, glm::vec2 direction, float length, glm::vec4 color)

@@ -574,6 +574,8 @@ namespace Online::Physics
         ProcessSensorEvents();
 
         ApplyPhysicsToTransforms();
+
+        PhysicsStepCompleted();
     }
 
     void PhysicsSimulator::ApplyPhysicsToTransforms()
@@ -666,6 +668,12 @@ namespace Online::Physics
         ctx->fractions.push_back(fraction);
 
         return fraction;  // 返回 fraction 表示接受此交点
+    }
+
+    void PhysicsSimulator::PhysicsStepCompleted()
+    {
+        Online::Event::PhysStepCompletedEventArgs args;
+        Event::Emit(Event::Event(Event::EventType::PhysStepCompleted, &args));
     }
 
     RayCastHit PhysicsSimulator::RayCastTool(glm::vec2 origin, glm::vec2 direction,
@@ -954,6 +962,16 @@ namespace Online::Physics
         auto it = entityBodyPtrs.find(entity);
         if (it != entityBodyPtrs.end() && b2Body_IsValid(*it->second))
             b2Body_ApplyLinearImpulse(*it->second, { impulse.x, impulse.y }, { worldPoint.x, worldPoint.y }, true);
+    }
+
+    void PhysicsSimulator::SetBodyTransform(entt::entity entity, const glm::vec2& position, float angle)
+    {
+        auto it = entityBodyPtrs.find(entity);
+        if (it != entityBodyPtrs.end() && b2Body_IsValid(*it->second))
+        {
+            b2Body_SetTransform(*it->second, { position.x / PPM, position.y / PPM }, b2MakeRot(angle));
+            b2Body_SetAwake(*it->second, true);
+		}
     }
 
     bool PhysicsSimulator::IsAwake(entt::entity entity) const

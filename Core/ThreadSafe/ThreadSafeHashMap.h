@@ -27,7 +27,33 @@ namespace Online::Core
         ThreadSafeHashMap(ThreadSafeHashMap&&) = delete;
         ThreadSafeHashMap& operator=(ThreadSafeHashMap&&) = delete;
 
-    public:
+        Value* Get(const Key& key)
+        {
+            std::shared_lock<std::shared_mutex> lock(mutex);
+            auto it = map.find(key);
+            return it != map.end() ? &it->second : nullptr;
+        }
+
+        const Value* Get(const Key& key) const
+        {
+            std::shared_lock<std::shared_mutex> lock(mutex);
+            auto it = map.find(key);
+            return it != map.end() ? &it->second : nullptr;
+        }
+
+        template <typename Factory>
+        Value& GetOrCreate(const Key& key, Factory&& factory)
+        {
+            std::unique_lock<std::shared_mutex> lock(mutex);
+            auto it = map.find(key);
+            if (it != map.end()) {
+                return it->second;
+            }
+            auto val = std::forward<Factory>(factory)();
+            auto [newIt, ok] = map.emplace(key, std::move(val));
+            return newIt->second;
+        }
+
         inline bool Contains(const Key& key) const
         {
             std::shared_lock<std::shared_mutex> lock(mutex);

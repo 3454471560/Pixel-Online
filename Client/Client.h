@@ -37,7 +37,7 @@ namespace Online::Runtime
             Online::Runtime::Module<Online::Asset::AssetHub>            AssetHub;
             Online::Runtime::Module<Online::Task::TaskScheduler>        TaskScheduler;
             Online::Runtime::Module<Online::Game::GameWorld>            GameWorld;
-            Online::Runtime::Module<Online::Net::Client::NetworkClient> NetworkClient;
+            Online::Runtime::Module<Online::Net::Client::HybridClient>  NetworkClient;
             Online::Runtime::Module<Online::Audio::AudioPlayer>         AudioPlayer;
             Online::Runtime::Module<Online::Script::LifeCycleTable>     LifeCycleTable;
         };
@@ -54,7 +54,7 @@ namespace Online::Runtime
             Online::Runtime::FuncTable<Online::Asset::AssetHub>            AssetHub;
             Online::Runtime::FuncTable<Online::Task::TaskScheduler>        TaskScheduler;
             Online::Runtime::FuncTable<Online::Game::GameWorld>            GameWorld;
-            Online::Runtime::FuncTable<Online::Net::Client::NetworkClient> NetworkClient;
+            Online::Runtime::FuncTable<Online::Net::Client::HybridClient> NetworkClient;
             Online::Runtime::FuncTable<Online::Physics::PhysicsSimulator>  PhysicsSimulator;
             Online::Runtime::FuncTable<Online::Script::LifeCycleTable>     LifeCycleTable;
         };

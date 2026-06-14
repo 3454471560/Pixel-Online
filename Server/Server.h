@@ -8,6 +8,11 @@
 #include <Event/Common/FuncTable.h>
 #include <Task/Common/FuncTable.h>
 #include <Net/Server/Common/FuncTable.h>
+#include <Game/Common/FuncTable.h>
+#include <Phys/Common/FuncTable.h>
+#include <Script/Common/FuncTable.h>
+#include <Config/Common/FuncTable.h>
+#include <Input/Common/FuncTable.h>
 
 namespace Online::Runtime
 {
@@ -23,7 +28,11 @@ namespace Online::Runtime
             Module<Online::Time::Chronometer> Chronometer;
 			Module<Online::Physics::PhysicsSimulator> PhysicsSimulator;
 			Module<Online::Task::TaskScheduler> TaskScheduler;
-            Module<Online::Net::Server::NetworkServer> NetworkServer;
+            Module<Online::Net::Server::HybridServer> NetworkServer;
+			Module<Online::Game::GameWorld> GameWorld;
+            Module<Online::Script::LifeCycleTable> LifeCycleTable;
+            Module<Online::Config::Configurator> Configurator;
+            Module<Online::Input::InputMonitor> InputMonitor;
         };
 
         struct FuncTables
@@ -33,7 +42,12 @@ namespace Online::Runtime
             Online::Runtime::FuncTable<Online::Thread::ThreadTracker> ThreadTracker;
             Online::Runtime::FuncTable<Online::Event::EventDispatcher> EventDispatcher;
             Online::Runtime::FuncTable<Online::Task::TaskScheduler> TaskScheduler;
-            Online::Runtime::FuncTable<Online::Net::Server::NetworkServer> NetworkServer;
+            Online::Runtime::FuncTable<Online::Net::Server::HybridServer> NetworkServer;
+			Online::Runtime::FuncTable<Online::Game::GameWorld> GameWorld;
+            Online::Runtime::FuncTable<Online::Physics::PhysicsSimulator> PhysicsSimulator;
+            Online::Runtime::FuncTable<Online::Script::LifeCycleTable> LifeCycleTable;
+            Online::Runtime::FuncTable<Online::Config::Configurator> Configurator;
+            Online::Runtime::FuncTable<Online::Input::InputMonitor> InputMonitor;
         };
 
         Modules modules;

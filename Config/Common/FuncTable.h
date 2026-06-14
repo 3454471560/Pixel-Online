@@ -1,7 +1,6 @@
 #pragma once
 
 #include<Context/Context.h>
-#include<Client/Context/ClientContext.h>
 #include<Render/Common/API.h>
 #include<TileEdit/Common/TileMap.h>
 #include<Config/Common/TileMapID.h>
@@ -15,6 +14,7 @@ namespace Online::Runtime
 	struct FuncTable<Online::Config::Configurator>
 	{
 		friend class Online::Runtime::Client;
+		friend class Online::Runtime::Server;
 	private:
 		FuncTable() = default;
 		~FuncTable() = default;
@@ -78,22 +78,22 @@ namespace Online::Config
 {
 	inline Online::Render::API GetRenderAPI() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Config::Configurator>().InvokeOnGetRenderAPI();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Config::Configurator>().InvokeOnGetRenderAPI();
 	}
 	inline size_t GetMaxFixupdataExecuteTimes() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Config::Configurator>().InvokeOnGetMaxFixupdataExecuteTimes();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Config::Configurator>().InvokeOnGetMaxFixupdataExecuteTimes();
 	}
 	inline bool GetEnableVSync() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Config::Configurator>().InvokeOnGetEnableVSync();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Config::Configurator>().InvokeOnGetEnableVSync();
 	}
 	inline const Online::TileEdit::TileMap& GetTileMap(Online::Config::TileMapID ID) noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Config::Configurator>().InvokeGetTileMap(ID);
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Config::Configurator>().InvokeGetTileMap(ID);
 	}
 	inline const std::vector<Config::CharLayout>& GetCharLayouts() noexcept
 	{
-		return Online::Runtime::ClientContext::Instance().GetClientFuncTable<Online::Config::Configurator>().InvokeGetCharLayouts();
+		return Online::Runtime::Context::Instance().GetFuncTable<Online::Config::Configurator>().InvokeGetCharLayouts();
 	}
 }

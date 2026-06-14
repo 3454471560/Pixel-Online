@@ -142,7 +142,6 @@
     <ClInclude Include="Backend\Json\CJsonContext.h" />
     <ClInclude Include="Backend\MsgPack\MsgPackContext.h" />
     <ClInclude Include="Common\SerializeAPI.h" />
-    <ClInclude Include="Common\Serialize.h" />
     <ClInclude Include="Frontend\DeserializeContext.h" />
     <ClInclude Include="Frontend\SerializeContext.h" />
     <ClInclude Include="Serializable.h" />
