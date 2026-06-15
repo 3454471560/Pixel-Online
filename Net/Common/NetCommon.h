@@ -20,6 +20,8 @@ namespace Online::Net
         ReqEntityData,    // 客户端：请求指定NetID实体数据
         RespEntityData,  // 服务端：返回指定NetID实体完整数据
         PlayerInput = 15,   // 客户端 → 服务端：玩家按键输入包
+        ExitWorldNotice = 16,   // 客户端 → 服务端：退出世界包
+        EntityDestroy = 17,   // 服务端 → 客户端：销毁指定NetID实体
     };
 
     enum class ChannelType : uint8_t

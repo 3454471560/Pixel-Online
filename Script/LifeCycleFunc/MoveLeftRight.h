@@ -24,11 +24,9 @@ namespace Online::Script
 
         static void MoveLeftRight_OnEnable(Game::GameObject* go)
         {
-            // 判空：游戏对象为空直接返回
             if (!go) return;
 
             auto* data = go->GetScriptData<MoveData>(ScriptFunctionID::MoveLeftRight);
-            // 脚本数据判空
             if (!data) return;
 
             data->speed = 10.0f;
@@ -49,6 +47,7 @@ namespace Online::Script
 
             // 只有客户端和本地玩家才读取硬件输入
 #ifdef PIXEL_CLIENT
+            constexpr float MOVE_THRESHOLD = 0.05f; // 移动阈值，可按需调整
             if (true)
             {
                 auto* netIdComp = go->GetComponent<Game::NetID>();
@@ -57,7 +56,7 @@ namespace Online::Script
                     if (anco && spri)
                     {
                         float velX = rigi->GetVelocity(go->GetEntity()).x;
-                        if (velX != 0)
+                        if (std::abs(velX) > MOVE_THRESHOLD)
                         {
                             anco->SetFloat("Speed", 1.0f);
                             spri->SetFlipX(velX < 0);
@@ -131,7 +130,6 @@ namespace Online::Script
             }
 #endif // PIXEL_CLIENT
 
-            // ===================== 服务端专属：从 InputModule 读取客户端输入，执行权威计算 =====================
 #ifdef PIXEL_SERVER
             auto* netId = go->GetComponent<Game::NetID>();
             if (!netId) return;

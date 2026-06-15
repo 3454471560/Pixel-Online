@@ -4,6 +4,7 @@
 #include<Game/Entity/GameObject.h>
 #include<Game/Component/Tag.h>
 #include<Game/Common/EntityRefFixup.h>
+#include<Game/Character/RoleID.h>
 #include<Time/Common/FuncTable.h>
 
 #ifdef PIXEL_CLIENT
@@ -586,49 +587,6 @@ namespace Online::Game
         follow.SetOffest({ -640,-390 });
         std::string name = std::string(target->GetName());
         IsEnableSync = true;
-           
-        Sprite& sprite = target->AddComponent<Sprite>();
-        Animator& animator = target->AddComponent<Animator>();
-
-        sprite.SetRenderOffset({ 0,-58 });
-        sprite.SetRenderQueue(Render::RenderQueue::World);
-        animator.SetSprite(&sprite);
-
-        GameObject* overlayGO = CreateGameObject("Overlay");
-        overlayGO->SetParent(target);
-        Sprite& overlaySprite = overlayGO->AddComponent<Sprite>();
-        Animator& overlayAnim = overlayGO->AddComponent<Animator>();
-        overlaySprite.SetRenderOffset({ 0,-55 });
-        overlayAnim.SetSprite(&overlaySprite);
-        overlaySprite.OnDisable();
-
-
-        AnimatorController& controller = target->AddComponent<AnimatorController>();
-        controller.SetStates({
-            { "Idle", Asset::AnimationClipID::Anim_SilverHat_Idle },
-            { "Run",  Asset::AnimationClipID::Anim_SilverHat_Run }
-            });
-        controller.SetMainAnimator(&animator);
-        controller.SetOverlayAnimator(&overlayAnim);
-
-        controller.SetTransitions({
-        {
-            "Idle",
-            "Run",
-            0.0f,
-            { { "Speed", AnimatorConditionMode::Greater, 0.1f } }
-        },
-        {
-            "Run",
-            "Idle",
-            0.0f,
-            { { "Speed", AnimatorConditionMode::Less, 0.1f } }
-        }
-            });
-
-        controller.SetDefaultStateName("Idle");
-        controller.Play("Idle");
-
 
     }
 
@@ -654,6 +612,9 @@ namespace Online::Game
         for (auto [entity, netId, trans, rb] : syncView.each())
         {
             if (!netId.GetNeedSync()) continue;
+
+            GameObject* obj = GetGameObject(entity);
+            if (obj && !obj->IsActive()) continue;
 
             Net::EntityStateData state{};
             state.netId = netId.GetNetId();
@@ -813,6 +774,11 @@ namespace Online::Game
             go->AddScriptFunction(static_cast<Script::ScriptFunctionID>(scriptId));
         }
 
+        if (data.hasCharacter)
+        {
+            Online::Game::AddAnimatorControll(data.roleId, go);
+        }
+
         Online::Log::Info("CreateEntityFromFullData: Successfully created entity "
             + data.entityName + " (netId=" + std::to_string(data.netId) + ")");
     }
@@ -922,6 +888,10 @@ namespace Online::Game
     void Scene::DestroyEntity(entt::entity entity)
     {
         if (!ecsRegistry.valid(entity)) { return; }
+        if (GameObject* obj = GetGameObject(entity))
+            obj->SetActive(false);
+        if (auto* netId = ecsRegistry.try_get<NetID>(entity))
+            netId->SetNeedSync(false);
         delayDestroyQueue.push_back(entity);
     }
 
@@ -1050,6 +1020,7 @@ namespace Online::Game
 
     void Scene::ProcessAnimationSystem(float deltaTime)
     {
+#ifdef PIXEL_CLIENT
         auto view = ecsRegistry.view<Animator>();
         for (auto [entity, animator] : view.each())
         {
@@ -1101,8 +1072,12 @@ namespace Online::Game
                 animator.SetCurrentFrameIndex(newFrame);
                 uint8_t targetFrame = clip->GetFrames()[animator.GetCurrentFrameIndex()];
                 animator.GetSprite()->SetFrame(targetFrame);
+
+
+                animator.ExecuteKeyframeEvents(newFrame);
             }
         }
+#endif
     }
 
     void Scene::ProcessProgressBarSystem(float deltaTime)
@@ -1323,6 +1298,7 @@ namespace Online::Game
 
     void Scene::ProcessAnimatorControllerSystem(float deltaTime)
     {
+#ifdef PIXEL_CLIENT
         auto view = ecsRegistry.view<AnimatorController>();
         for (auto [entity, controller] : view.each())
         {
@@ -1401,6 +1377,7 @@ namespace Online::Game
                 }
             }
         }
+#endif
     }
 
     void Scene::ProcessSyncTransform()
@@ -1418,6 +1395,10 @@ namespace Online::Game
                 continue;
 
             float dt = now - sync.receiveTime;
+            if (dt >= 6.0f)
+            {
+                Game::GetGameObject(entity)->SetActive(false);
+            }
             dt = glm::clamp(dt, 0.0f, MAX_PREDICTION_TIME); 
 
             // 2. 外推位置 = 服务器位置 + 速度 * 时间差

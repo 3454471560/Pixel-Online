@@ -1,5 +1,6 @@
 #pragma once
 #include <Context/Context.h>
+#include <Game/Character/RoleID.h>
 
 #include <entt/entt.hpp>
 #include <glm.hpp>
@@ -47,6 +48,7 @@ namespace Online::Runtime
 			if (!OnFindGameObjectsAllByName) { throw std::runtime_error("Delegates miss [GameWorld::FindGameObjectsAllByName] Function!"); }
 			if (!OnFindGameObjectByTag) { throw std::runtime_error("Delegates miss [GameWorld::FindGameObjectByTag] Function!"); }
 			if (!OnFindGameObjectsByTag) { throw std::runtime_error("Delegates miss [GameWorld::FindGameObjectsByTag] Function!"); }
+			if (!OnAddAnimatorControll) { throw std::runtime_error("Delegates miss [GameWorld::AddAnimatorControll] Function!"); }
 
 			return true;
 		}
@@ -71,6 +73,7 @@ namespace Online::Runtime
 			OnFindGameObjectsAllByName = nullptr;
 			OnFindGameObjectByTag = nullptr;
 			OnFindGameObjectsByTag = nullptr;
+			OnAddAnimatorControll = nullptr;
 		}
 	public:
 		inline Online::Game::Scene* InvokeOnGetActiveScene() const noexcept
@@ -167,6 +170,10 @@ namespace Online::Runtime
 		{
 			return OnGetServerFrame();
 		}
+		inline void InvokeOnAddAnimatorControll(Game::RoleID roleID, Game::GameObject* player)
+		{
+			OnAddAnimatorControll(roleID, player);
+		}
 
 	private:
 		Online::Game::Scene* (*OnGetActiveScene)() noexcept = nullptr;
@@ -192,6 +199,7 @@ namespace Online::Runtime
 		uint32_t (*OnGetLoaclPlayerNetID)() noexcept = nullptr;
 		Game::GameObject* (*OnGetLocalPlayer)() noexcept = nullptr;
 		uint32_t(*OnGetServerFrame)() noexcept = nullptr;
+		void (*OnAddAnimatorControll)(Game::RoleID, Game::GameObject*) noexcept = nullptr;
 	};
 }
 
@@ -289,5 +297,9 @@ namespace Online::Game
 	inline uint32_t GetServerFrame() noexcept
 	{
 		return Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnGetServerFrame();
+	}
+	inline void AddAnimatorControll(Game::RoleID roleID, Game::GameObject* player) noexcept
+	{
+		Online::Runtime::Context::Instance().GetFuncTable<Online::Game::GameWorld>().InvokeOnAddAnimatorControll(roleID, player);
 	}
 }

@@ -51,6 +51,12 @@
     <ClInclude Include="Common\PlayerInputPacket.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Common\ExitWorldPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\EntityDestroyPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client\HybridClient.cpp">

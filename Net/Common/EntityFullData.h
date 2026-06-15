@@ -5,6 +5,7 @@
 #include <span>
 #include <glm.hpp>
 
+#include <Game/Character/RoleID.h>
 #include <Phys/Common/BodyType.h>
 #include <Phys/Common/ColliderShape.h>
 #include <Serialize/Serializable.h>
@@ -39,6 +40,10 @@ namespace Online::Net
 
         std::vector<uint32_t> scriptIds;
 
+        bool hasCharacter = false;
+        Game::RoleID roleId;
+
+
         void Serialize(Online::Serialize::SerializeContext& ctx) const override
         {
             ctx.Write("netId", netId);
@@ -63,6 +68,9 @@ namespace Online::Net
             ctx.Write("density", density);
             ctx.Write("friction", friction);
             ctx.Write("restitution", restitution);
+
+            ctx.Write("hasCharacter", hasCharacter);
+            ctx.Write("RoleID", static_cast<uint8_t>(roleId));
 
             ctx.BeginArray("scriptIds");
             for (uint32_t sid : scriptIds)
@@ -123,6 +131,11 @@ namespace Online::Net
                     }
                 }
             }
+
+            ctx.Read("hasCharacter", hasCharacter);
+            uint8_t roleId;
+            ctx.Read("RoleID", roleId);
+            this->roleId = static_cast<Game::RoleID>(roleId);
         }
 
         std::vector<std::byte> SerializePayload() const

@@ -181,6 +181,12 @@ namespace Online::Game
             auto idx = static_cast<size_t>(id);
             return static_cast<T*>(scriptData[idx]);
         }
+
+        inline bool HasScriptFunction(Script::ScriptFunctionID id) const noexcept
+        {
+            return std::find(activeScripts.begin(), activeScripts.end(), id) != activeScripts.end();
+        }
+
     public:
         inline entt::entity GetEntity() const noexcept
         {
@@ -429,6 +435,7 @@ namespace Online::Game
         {
             return GetComponent<T>();
         }
+
 
     private:
         entt::entity Entity = entt::null;

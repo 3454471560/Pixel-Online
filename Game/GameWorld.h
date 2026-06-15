@@ -2,9 +2,12 @@
 #include <Core/Allocate/Allocate.h>
 #include <Context/Common/Module.h>
 #include <Game/Scene/Scene.h>
+#include <Game/Character/RoleID.h>
+#include <Game/Entity/GameObject.h>
 
 #include <Net/Common/JoinWorldPacket.h>
 #include <Net/Common/ReqEntityDataPacket.h>
+#include <Net/Common/ExitWorldPacket.h>
 
 #include<entt/entt.hpp>
 
@@ -91,6 +94,7 @@ namespace Online::Game
         void SendJoinWorldRequest(const std::string& playerName, uint32_t playerId);
 
         void HandleJoinWorldRequest(int connId, const Online::Net::JoinWorldRequest& req);
+        void HandleExitWorldNotice(int connId);
         void SendWorldSnapshot(int connId, uint32_t localPlayerNetId);
         void HandleEntityDataRequest(int connId, const Online::Net::ReqEntityDataPacket& req);
     private:
@@ -242,6 +246,53 @@ namespace Online::Game
             }
             return nullptr;
         }
+
+        inline void AddAnimatorControllForSilverHat(GameObject* player)
+        {
+            Sprite& sprite = player->AddComponent<Sprite>();
+            Animator& animator = player->AddComponent<Animator>();
+
+            sprite.SetRenderOffset({ 0,-58 });
+            sprite.SetRenderQueue(Render::RenderQueue::World);
+            animator.SetSprite(&sprite);
+
+            GameObject* overlayGO = activeScene->CreateGameObject("Overlay");
+            overlayGO->SetParent(player);
+            Sprite& overlaySprite = overlayGO->AddComponent<Sprite>();
+            Animator& overlayAnim = overlayGO->AddComponent<Animator>();
+            overlaySprite.SetRenderOffset({ 0,-55 });
+            overlayAnim.SetSprite(&overlaySprite);
+            overlaySprite.OnDisable();
+
+
+            AnimatorController& controller = player->AddComponent<AnimatorController>();
+            controller.SetStates({
+                { "Idle", Asset::AnimationClipID::Anim_SilverHat_Idle },
+                { "Run",  Asset::AnimationClipID::Anim_SilverHat_Run }
+                });
+            controller.SetMainAnimator(&animator);
+            controller.SetOverlayAnimator(&overlayAnim);
+
+            controller.SetTransitions({
+            {
+                "Idle",
+                "Run",
+                0.0f,
+                { { "Speed", AnimatorConditionMode::Greater, 0.1f } }
+            },
+            {
+                "Run",
+                "Idle",
+                0.0f,
+                { { "Speed", AnimatorConditionMode::Less, 0.1f } }
+            }
+                });
+
+            controller.SetDefaultStateName("Idle");
+            controller.Play("Idle");
+        }
+
+        void AddAnimatorControll(Game::RoleID RoleID, GameObject* player);
     private:
         Scene* activeScene = nullptr;
         Scene* loadingScene = nullptr;

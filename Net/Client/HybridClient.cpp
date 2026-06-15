@@ -32,14 +32,9 @@ bool Online::Net::Client::HybridClient::Initialize()
 
 void Online::Net::Client::HybridClient::Release()
 {
-    Disconnect();
     isRunning.store(false, std::memory_order_release);
     Thread::UnregisterThread(netThread);
 
-    // 清空发送队列残留数据
-    std::queue<PendingPacket> dump = m_sendQueue.PopAll();
-
-    // 清理所有消息队列
     auto allQueues = messageQueues.ExtractAll();
     for (auto& [key, q] : allQueues) delete q;
     messageQueues.Clear();
@@ -106,7 +101,6 @@ bool Online::Net::Client::HybridClient::Connect(const std::string& host, uint16_
         int ret = enet_host_service(clientHost, &event, 100);
         if (ret < 0) {
             enet_peer_reset(peer);
-            throw std::runtime_error("enet_host_service error");
         }
         if (ret == 0) continue;
 
@@ -181,14 +175,7 @@ bool Online::Net::Client::HybridClient::Connect(const std::string& host, uint16_
 
 void Online::Net::Client::HybridClient::Disconnect()
 {
-    {
-        std::lock_guard lock(connMutex);
-        if (!connected) return;
-        ReleaseConnectionResources();
-        connected = false;
-    }
-    // 断开后清空待发送队列
-    std::queue<PendingPacket> dump = m_sendQueue.PopAll();
+    isRunning.store(false);
 }
 
 void Online::Net::Client::HybridClient::ReleaseConnectionResources()
@@ -208,7 +195,6 @@ void Online::Net::Client::HybridClient::ReleaseConnectionResources()
     localConnId = -1;
 }
 
-// ========== 核心改动：发送函数改为纯入队，主线程零锁、零阻塞 ==========
 bool Online::Net::Client::HybridClient::SendReliable(std::span<const std::byte> data, PacketType type, ChannelType channel)
 {
     // 原子判断连接状态，不抢全局锁
@@ -220,7 +206,7 @@ bool Online::Net::Client::HybridClient::SendReliable(std::span<const std::byte> 
     pkt.type = type;
     pkt.channel = channel;
     pkt.reliable = true;
-    m_sendQueue.Push(std::move(pkt));
+    sendQueue.Push(std::move(pkt));
     return true;
 }
 
@@ -234,11 +220,10 @@ bool Online::Net::Client::HybridClient::SendUnreliable(std::span<const std::byte
     pkt.type = type;
     pkt.channel = channel;
     pkt.reliable = false;
-    m_sendQueue.Push(std::move(pkt));
+    sendQueue.Push(std::move(pkt));
     return true;
 }
 
-// ========== 内部发送实现：仅在网络线程锁内调用 ==========
 bool Online::Net::Client::HybridClient::SendToServer(std::span<const std::byte> data,
     PacketType type,
     ChannelType channel,
@@ -272,21 +257,18 @@ int Online::Net::Client::HybridClient::GetLocalConnId() const
     return localConnId;
 }
 
-// ========== 核心根治：网络线程锁粒度修正 + 批量发送 ==========
 void Online::Net::Client::HybridClient::NetThread()
 {
     while (isRunning.load(std::memory_order_acquire))
     {
         bool isConn = false;
         {
-            // 锁仅包住真正操作共享资源的代码，休眠绝对不持锁
             std::lock_guard lock(connMutex);
             isConn = connected.load();
 
             if (isConn)
             {
-                // 1. 单次加锁批量取出所有待发包，适配你的 PopAll 接口
-                std::queue<PendingPacket> pendingQueue = m_sendQueue.PopAll();
+                std::queue<PendingPacket> pendingQueue = sendQueue.PopAll();
                 while (!pendingQueue.empty())
                 {
                     auto pkt = std::move(pendingQueue.front());
@@ -294,7 +276,6 @@ void Online::Net::Client::HybridClient::NetThread()
                     SendToServer(pkt.payload, pkt.type, pkt.channel, pkt.reliable);
                 }
 
-                // 2. 处理所有网络接收事件
                 ENetEvent event;
                 while (enet_host_service(clientHost, &event, 0) > 0)
                 {
@@ -314,7 +295,6 @@ void Online::Net::Client::HybridClient::NetThread()
                     }
                 }
 
-                // 3. 心跳逻辑
                 uint32_t now = Online::Core::CurrentMs();
                 if (now - lastHeartbeatMs > HEARTBEAT_INTERVAL)
                 {
@@ -332,9 +312,8 @@ void Online::Net::Client::HybridClient::NetThread()
                     }
                 }
             }
-        } // 锁在这里释放！后面休眠完全不占用锁
+        }
 
-        // 所有休眠全部放到锁外面
         if (!isConn)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -342,6 +321,26 @@ void Online::Net::Client::HybridClient::NetThread()
         else
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+
+    {
+        std::lock_guard lock(connMutex);
+        if (connected && serverPeer)
+        {
+            auto pending = sendQueue.PopAll();
+            while (!pending.empty()) 
+            {
+                auto& pkt = pending.front();
+                SendToServer(pkt.payload, pkt.type, pkt.channel, pkt.reliable);
+                pending.pop();
+            }
+
+            enet_host_flush(clientHost);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+            ReleaseConnectionResources();   
+            connected = false;
         }
     }
 }
@@ -381,7 +380,6 @@ void Online::Net::Client::HybridClient::Tick()
 {
     static const uint32_t TIMEOUT = 30000;
     uint32_t now = Online::Core::CurrentMs();
-    // 仅原子读取，不抢锁；超时断连才加锁
     if (connected.load(std::memory_order_acquire) && (now - lastHeartbeatMs > TIMEOUT)) {
         Online::Log::Info("Heartbeat timeout, disconnecting");
         std::lock_guard lock(connMutex);

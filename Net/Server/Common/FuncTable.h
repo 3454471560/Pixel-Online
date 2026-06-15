@@ -29,6 +29,7 @@ namespace Online::Runtime
             if (!OnSendUnreliable) { throw std::runtime_error("Delegates miss [OnSendUnreliable] Function!"); }
             if (!OnBroadcastReliable) { throw std::runtime_error("Delegates miss [OnBroadcastReliable] Function!"); }
             if (!OnBroadcastUnreliable) { throw std::runtime_error("Delegates miss [OnBroadcastUnreliable] Function!"); }
+            if (!OnBroadcastUnreliableExcept) { throw std::runtime_error("Delegates miss [OnBroadcastUnreliableExcept] Function!"); }
             return true;
         }
 
@@ -39,6 +40,7 @@ namespace Online::Runtime
             OnSendUnreliable = nullptr;
             OnBroadcastReliable = nullptr;
             OnBroadcastUnreliable = nullptr;
+            OnBroadcastUnreliableExcept = nullptr;
         }
 
     public:
@@ -78,12 +80,20 @@ namespace Online::Runtime
             return OnBroadcastUnreliable(data, type, channel);
         }
 
+        inline bool InvokeOnBroadcastUnreliableExcept(int excludeConnId,
+            std::span<const std::byte> data,
+            Online::Net::PacketType type,
+            Online::Net::ChannelType channel = Online::Net::ChannelType::Unreliable)
+        {
+            return OnBroadcastUnreliableExcept(excludeConnId, data, type, channel);
+        }
     private:
         Online::Core::ThreadSafeQueue<Online::Net::NetMessage>& (*OnGetMessageQueue)(Online::Net::PacketType) noexcept = nullptr;
         bool (*OnSendReliable)(int, std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
         bool (*OnSendUnreliable)(int, std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
         bool (*OnBroadcastReliable)(std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
         bool (*OnBroadcastUnreliable)(std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
+        bool (*OnBroadcastUnreliableExcept)(int, std::span<const std::byte>, Online::Net::PacketType, Online::Net::ChannelType) noexcept = nullptr;
     };
 }
 
@@ -132,5 +142,15 @@ namespace Online::Net::Server
         return Online::Runtime::ServerContext::Instance()
             .GetServerFuncTable<Online::Net::Server::HybridServer>()
             .InvokeOnBroadcastUnreliable(data, type, channel);
+    }
+
+    inline bool BroadcastUnreliableExcept(int excludeConnId,
+        std::span<const std::byte> data,
+        PacketType type,
+        ChannelType channel = ChannelType::Unreliable)
+    {
+        return Online::Runtime::ServerContext::Instance()
+            .GetServerFuncTable<Online::Net::Server::HybridServer>()
+            .InvokeOnBroadcastUnreliableExcept(excludeConnId, data, type, channel);
     }
 }

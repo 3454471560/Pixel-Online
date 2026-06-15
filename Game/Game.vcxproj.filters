@@ -114,6 +114,12 @@
     <ClInclude Include="Component\SyncTransform.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Character\RoleID.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\KeyframeEvent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameWorld.cpp">

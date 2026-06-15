@@ -108,7 +108,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;PIXEL_CLIENT;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;PIXEL_SERVER;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)thirdparty\glm\;$(SolutionDir)thirdparty\mimalloc\include\;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\SDL2_ttf\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>

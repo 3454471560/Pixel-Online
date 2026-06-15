@@ -111,6 +111,6 @@ namespace Online::Net::Client
             bool reliable;
         };
 
-        Core::ThreadSafeQueue<PendingPacket> m_sendQueue;
+        Core::ThreadSafeQueue<PendingPacket> sendQueue;
     };
 }

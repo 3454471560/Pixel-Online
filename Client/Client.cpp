@@ -370,6 +370,10 @@ namespace
 	{
 		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetLocalPlayer();
 	}
+	inline void OnAddAnimatorControll(Online::Game::RoleID roleID, Online::Game::GameObject* player) noexcept
+	{
+		return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->AddAnimatorControll(roleID, player);
+	}
 
 #pragma endregion
 
@@ -719,6 +723,7 @@ bool Online::Runtime::Client::Initialize()
 		FUNCTABLE(GameWorld).OnSendJoinWorldRequest = OnSendJoinWorldRequest;
 		FUNCTABLE(GameWorld).OnGetLoaclPlayerNetID = OnGetLocalPlayerNetId;
 		FUNCTABLE(GameWorld).OnGetLocalPlayer = OnGetLocalPlayer;
+		FUNCTABLE(GameWorld).OnAddAnimatorControll = OnAddAnimatorControll;
 #pragma endregion
 
 #pragma region Net
@@ -1155,7 +1160,6 @@ void Online::Runtime::Client::Release()
 	do
 	{
 		MODULE(AudioPlayer).Release();
-		MODULE(NetworkClient).Release();
 		MODULE(Configurator).Release();
 		MODULE(Chronometer).Release();
 		MODULE(InputMonitor).Release();
@@ -1170,6 +1174,7 @@ void Online::Runtime::Client::Release()
 		MODULE(Logger).Release();
 		MODULE(ThreadTracker).Release();
 		MODULE(LifeCycleTable).Release();
+		MODULE(NetworkClient).Release();
 	} while (false);
 
 	//Destroy Modules

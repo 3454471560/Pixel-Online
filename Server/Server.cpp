@@ -210,6 +210,10 @@ namespace
     {
         return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->GetServerFrame();
 	}
+    inline void OnAddAnimatorControll(Online::Game::RoleID roleID, Online::Game::GameObject* player) noexcept
+    {
+        return Online::Runtime::Context::Instance().GetModule<Online::Game::GameWorld>()->AddAnimatorControll(roleID, player);
+    }
 #pragma endregion
 
 #pragma region Net
@@ -253,6 +257,15 @@ namespace
         return Online::Runtime::ServerContext::Instance()
             .GetServerModule<Online::Net::Server::HybridServer>()
             ->BroadcastUnreliable(data, type, channel);
+    }
+    inline bool OnBroadcastUnreliableExcept(int excludeConnId,
+        std::span<const std::byte> data,
+        Online::Net::PacketType type,
+        Online::Net::ChannelType channel = Online::Net::ChannelType::Unreliable) noexcept
+    {
+        return Online::Runtime::ServerContext::Instance()
+            .GetServerModule<Online::Net::Server::HybridServer>()
+            ->BroadcastUnreliableExcept(excludeConnId, data, type, channel);
     }
 #pragma endregion
 
@@ -478,6 +491,7 @@ bool Online::Runtime::Server::Initialize()
         FUNCTABLE(GameWorld).OnFindGameObjectsByTag = OnFindGameObjectsByTag;
         FUNCTABLE(GameWorld).OnGenerate = OnGenerate;
 		FUNCTABLE(GameWorld).OnGetServerFrame = OnGetServerFrame;
+        FUNCTABLE(GameWorld).OnAddAnimatorControll = OnAddAnimatorControll;
 #pragma endregion
 
 #pragma region Net
@@ -486,6 +500,7 @@ bool Online::Runtime::Server::Initialize()
         FUNCTABLE(NetworkServer).OnSendUnreliable = OnSendUnreliable;
         FUNCTABLE(NetworkServer).OnBroadcastReliable = OnBroadcastReliable;
         FUNCTABLE(NetworkServer).OnBroadcastUnreliable = OnBroadcastUnreliable;
+        FUNCTABLE(NetworkServer).OnBroadcastUnreliableExcept = OnBroadcastUnreliableExcept;
 #pragma endregion
 
 #pragma region Physics

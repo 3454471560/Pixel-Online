@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Character\RoleID.h" />
     <ClInclude Include="Common\AnimatorCondition.h" />
     <ClInclude Include="Common\AnimatorConditionMode.h" />
     <ClInclude Include="Common\AnimatorParameter.h" />
@@ -28,6 +29,7 @@
     <ClInclude Include="Common\Direction.h" />
     <ClInclude Include="Common\EntityRefFixup.h" />
     <ClInclude Include="Common\FuncTable.h" />
+    <ClInclude Include="Common\KeyframeEvent.h" />
     <ClInclude Include="Common\SrcRectMode.h" />
     <ClInclude Include="Component\Animator.h" />
     <ClInclude Include="Component\AnimatorController.h" />
@@ -150,7 +152,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;PIXEL_CLIENT;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;PIXEL_SERVER;_WINSOCKAPI_;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\mimalloc\include;$(SolutionDir)thirdparty\glm;$(SolutionDir)thirdparty\SDL2\include;$(SolutionDir)thirdparty\SDL2_ttf\include;$(SolutionDir)thirdparty\SDL2_mixer\include;$(SolutionDir)thirdparty\entt;$(SolutionDir)thirdparty\SDL2_image\include;$(SolutionDir)thirdparty\enet\include;$(SolutionDir)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>

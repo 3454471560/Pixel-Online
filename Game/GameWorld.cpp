@@ -6,6 +6,8 @@
 #include<Input/Common/FuncTable.h>
 #include<Task/Common/FuncTable.h>
 #include<Net/Common/WorldSnapshot.h>
+#include<Net/Common/ExitWorldPacket.h>
+#include<Net/Common/EntityDestroyPacket.h>
 #include<Event/Common/FuncTable.h>
 
 #include<chrono>
@@ -274,6 +276,16 @@ void Online::Game::GameWorld::Release()
 		ONLINE_DELETE(pendingScene);
 		pendingScene = nullptr;
 	}
+#ifdef PIXEL_CLIENT
+
+
+	Net::ExitWorldNotice notice;
+	notice.ClientID = Net::Client::GetLocalConnId();
+
+	std::vector<std::byte> payload = notice.SerializePayload();
+	Net::Client::SendReliable(payload, notice.TYPE, Online::Net::ChannelType::ReliableUnordered);
+#endif // ONLINE_CLIENT
+
 #ifdef PIXEL_SERVER
 	if (serverWorld)
 	{
@@ -317,6 +329,17 @@ void Online::Game::GameWorld::FixedUpdate()
 		if (req.DeserializeFromPayload(reqMsg.body))
 		{
 			HandleEntityDataRequest(reqMsg.connectionId, req);
+		}
+	}
+
+	auto& ExitNoticeQueue = Net::Server::GetMessageQueue(Net::PacketType::ExitWorldNotice);
+	Net::NetMessage ExitMsg;
+	while (ExitNoticeQueue.Pop(ExitMsg))
+	{
+		Net::ExitWorldNotice notic;
+		if (notic.DeserializeFromPayload(ExitMsg.body))
+		{
+			HandleExitWorldNotice(notic.ClientID);
 		}
 	}
 #endif
@@ -385,9 +408,32 @@ void Online::Game::GameWorld::LateUpdate()
 			}
 		}
 
+		auto& destroyQueue = Net::Client::GetMessageQueue(Net::PacketType::EntityDestroy);
+		Net::NetMessage destroyMsg;
+		while (destroyQueue.Pop(destroyMsg))
+		{
+			Net::EntityDestroyPacket pkt;
+			if (pkt.DeserializeFromPayload(destroyMsg.body))
+			{
+				for (uint32_t netId : pkt.netIds)
+				{
+					auto view = activeScene->ecsRegistry.view<NetID>();
+					for (auto entity : view)
+					{
+						if (view.get<NetID>(entity).GetNetId() == netId)
+						{
+							activeScene->DestroyEntity(entity);
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
 
 #endif
+
+	
 
 	if (activeScene)
 	{
@@ -409,6 +455,7 @@ void Online::Game::GameWorld::LateUpdate()
 
 void Online::Game::GameWorld::EndFrame()
 {
+
 	if (activeScene) { activeScene->ProcessDelayDestroyQueue(); }
 }
 
@@ -423,6 +470,22 @@ void Online::Game::GameWorld::UnloadCurrentScene()
 	activeScene = nullptr;
 	showLoadingScene = false;
 	Online::Log::Info("GameWorld: Unloaded current scene successfully");
+}
+
+void Online::Game::GameWorld::AddAnimatorControll(Game::RoleID RoleID, GameObject* player)
+{
+	if (!player)
+		return;
+	switch (RoleID)
+	{
+	case Game::RoleID::SilverHat:
+		AddAnimatorControllForSilverHat(player);
+		break;
+	case Game::RoleID::RedGeneral:
+		break;
+	default:
+		AddAnimatorControllForSilverHat(player);
+	}
 }
 
 void Online::Game::GameWorld::LoadScene(const std::string& sceneName)
@@ -481,7 +544,6 @@ void Online::Game::GameWorld::LoadScene(const std::vector<std::byte>& sceneByte)
 		Scene* scene = ONLINE_NEW(Scene);
 		bool ok = scene->DeserializeFromBytes(sceneByte, Serialize::API::Json);
 
-		scene->SerializeToFile(Core::GetExeDir() + "scenes\\world.json");
 		if (!ok)
 		{
 			ONLINE_DELETE(scene);
@@ -665,10 +727,11 @@ void Online::Game::GameWorld::HandleJoinWorldRequest(int connId, const Net::Join
 	col.SetRestitution(0.0f);
 
 	NetID* netId = player->GetComponent<NetID>();
-	assert(netId);  // 一定存在
+	assert(netId);
 	netId->SetOwnerConnId(connId);
-	// netId->SetNetId(Generate());  // 已经生成过，不要重复生成！
 	netId->SetNeedSync(true);
+
+	AddAnimatorControllForSilverHat(player);
 
 	player->AddScriptFunction(Script::ScriptFunctionID::MoveLeftRight);
 
@@ -679,13 +742,60 @@ void Online::Game::GameWorld::HandleJoinWorldRequest(int connId, const Net::Join
 #endif
 }
 
-void Online::Game::GameWorld::SendWorldSnapshot(int connId, uint32_t localPlayerNetId)
+void Online::Game::GameWorld::HandleExitWorldNotice(int connId)
 {
 #ifdef PIXEL_SERVER
+	if (!serverWorld)
+		return;
+
+	auto netView = serverWorld->ecsRegistry.view<NetID>();
+	std::vector<uint32_t> destroyedNetIds;
+	std::vector<entt::entity> entitiesToDestroy;
+
+	for (auto entity : netView)
+	{
+		auto& netIdComp = netView.get<NetID>(entity);
+		if (netIdComp.GetOwnerConnId() == connId)
+		{
+			entitiesToDestroy.push_back(entity);
+			destroyedNetIds.push_back(netIdComp.GetNetId());
+		}
+	}
+
+	if (entitiesToDestroy.empty())
+	{
+		Online::Log::Info("No entities found for disconnecting connId: " + std::to_string(connId));
+		return;
+	}
+
+	for (entt::entity entity : entitiesToDestroy)
+		serverWorld->DestroyEntity(entity);
+
+	Net::EntityDestroyPacket destroyPkt;
+	destroyPkt.netIds = std::move(destroyedNetIds);
+	auto payload = destroyPkt.SerializePayload();
+
+	Net::Server::BroadcastUnreliableExcept(
+		connId,
+		payload,
+		Net::PacketType::EntityDestroy,
+		Net::ChannelType::ReliableUnordered
+	);
+
+	Online::Log::Info("Player disconnected (connId=" + std::to_string(connId) +
+		"), destroyed " + std::to_string(destroyPkt.netIds.size()) + " entities, broadcasted destroy packet.");
+#endif
+}
+
+void Online::Game::GameWorld::SendWorldSnapshot(int connId, uint32_t localPlayerNetId)
+{
+
+#ifdef PIXEL_SERVER
+	if (serverWorld)
+		serverWorld->ProcessDelayDestroyQueue();
+
 	std::vector<std::byte> payload;
 	serverWorld->SerializeToBytes(payload,Serialize::API::Json);
-
-	serverWorld->SerializeToFile(Core::GetExeDir() + "scenes\\world.json");
 
 	Online::Net::WorldSnapshot snapshot;
 	snapshot.localPlayerNetId = localPlayerNetId;
@@ -710,10 +820,9 @@ void Online::Game::GameWorld::SendWorldSnapshot(int connId, uint32_t localPlayer
 void Online::Game::GameWorld::HandleEntityDataRequest(int connId, const Online::Net::ReqEntityDataPacket& req)
 {	
 #ifdef PIXEL_SERVER
-	Scene* scene = GetActiveScene();   // 服务端就是 serverWorld
+	Scene* scene = GetActiveScene();
 	if (!scene) return;
 
-	// 查找目标 NetID 对应的实体
 	auto netView = scene->ecsRegistry.view<NetID>();
 	entt::entity entity = entt::null;
 	for (auto e : netView)
@@ -726,7 +835,6 @@ void Online::Game::GameWorld::HandleEntityDataRequest(int connId, const Online::
 	}
 	if (entity == entt::null) return;
 
-	// 填充完整实体数据
 	Net::EntityFullData full;
 	full.netId = req.targetNetId;
 
@@ -771,15 +879,21 @@ void Online::Game::GameWorld::HandleEntityDataRequest(int connId, const Online::
 		full.layerBits = col->GetCategoryBits();
 	}
 
-	// 收集脚本 ID
 	GameObject* go = scene->GetGameObject(entity);
 	if (go)
 	{
 		for (auto id : go->GetScriptIDSet())
 			full.scriptIds.push_back(static_cast<uint32_t>(id));
+
+		if (go->HasScriptFunction(Script::ScriptFunctionID::MoveLeftRight))
+		{
+			full.hasCharacter = true;
+			full.roleId = Game::RoleID::SilverHat;
+		}
 	}
 
-	// 发送响应
+
+
 	Net::RespEntityDataPacket resp;
 	resp.entityData = std::move(full);
 	auto payload = resp.SerializePayload();

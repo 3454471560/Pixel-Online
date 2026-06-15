@@ -21,8 +21,10 @@
   <ItemGroup>
     <ClInclude Include="Client\Common\FuncTable.h" />
     <ClInclude Include="Client\HybridClient.h" />
+    <ClInclude Include="Common\EntityDestroyPacket.h" />
     <ClInclude Include="Common\EntityFullData.h" />
     <ClInclude Include="Common\EntityStatePacket.h" />
+    <ClInclude Include="Common\ExitWorldPacket.h" />
     <ClInclude Include="Common\JoinWorldPacket.h" />
     <ClInclude Include="Common\NetCommon.h" />
     <ClInclude Include="Common\PlayerInputPacket.h" />

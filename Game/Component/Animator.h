@@ -2,6 +2,7 @@
 #include <Asset/Common/ID/AnimationClipID.h>
 #include <Asset/Common/Data/AnimationClip.h>
 #include <Asset/Common/FuncTable.h>
+#include <Game/Common/KeyframeEvent.h>
 #include <Game/Component/Sprite.h>
 #include <Game/Component/Component.h>
 #include <Log/Common/FuncTable.h>
@@ -12,6 +13,8 @@ namespace Online::Game
 {
 	struct Animator : public Component
     {
+        static constexpr int MAX_KEYFRAME_EVENT = 8;
+
         void Serialize(Online::Serialize::SerializeContext& ctx) const override
         {
             ctx.Write("clipID", static_cast<int>(CurrentClipID));
@@ -172,6 +175,53 @@ namespace Online::Game
             if (!sprite) return;
             sprite->SetFlipY(flipY);
 		}
+
+        inline void AddKeyframe(uint8_t frameIndex, std::function<void()> Event)
+        {
+            for (int i = 0; i < MAX_KEYFRAME_EVENT; ++i)
+            {
+                if (keyframeEvents[i].frameIdx == 0xFF)
+                {
+                    keyframeEvents[i].frameIdx = frameIndex;
+                    keyframeEvents[i].Event = std::move(Event);
+                    return;
+                }
+            }
+            Log::Warning("Animator keyframe event array full, max count: 8");
+        }
+
+        inline void RemoveKeyframe(uint8_t frameIndex)
+        {
+            for (int i = 0; i < MAX_KEYFRAME_EVENT; ++i)
+            {
+                if (keyframeEvents[i].frameIdx == frameIndex)
+                {
+                    keyframeEvents[i].Clear();
+                    break;
+                }
+            }
+        }
+
+        inline void ClearAllKeyframeEvents()
+        {
+            for (int i = 0; i < MAX_KEYFRAME_EVENT; ++i)
+            {
+                keyframeEvents[i].Clear();
+            }
+        }
+
+        void ExecuteKeyframeEvents(uint8_t curFrame)
+        {
+            for (int i = 0; i < MAX_KEYFRAME_EVENT; ++i)
+            {
+                auto& evt = keyframeEvents[i];
+                if (evt.frameIdx == curFrame && evt.Event)
+                {
+                    evt.Event();
+                }
+            }
+        }
+
     private:
         Asset::AnimationClipID CurrentClipID = static_cast<Asset::AnimationClipID>(0);
         Game::Sprite* sprite = nullptr;
@@ -180,5 +230,7 @@ namespace Online::Game
         bool Playing = false;
         bool Paused = false;
         bool NeedApplySettings = true;
+
+        KeyframeEvent keyframeEvents[MAX_KEYFRAME_EVENT];
     };
 }
