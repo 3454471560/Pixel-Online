@@ -1,4 +1,5 @@
 #include <Time/Chronometer.h>
+
 #include <SDL.h>
 #include <SDL_video.h>
 bool Online::Time::Chronometer::Initialize(bool EnableVSync)
