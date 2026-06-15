@@ -635,18 +635,80 @@ namespace Online::Game
     void Scene::BroadcastEntityStates()
     {
 #ifdef PIXEL_SERVER
-        std::vector<Net::EntityStateData> states;
-        CollectSyncEntities(states);
+        std::vector<Net::EntityStateData> allSyncStates;
+        CollectSyncEntities(allSyncStates);
 
-        if (states.empty()) return;
+        if (allSyncStates.empty())
+            return;
 
-        Net::EntityStatePacket pkt;
-        pkt.entities = std::move(states);
-        pkt.entityCount = static_cast<uint32_t>(pkt.entities.size());
+        constexpr float AOI_HALF_WIDTH = 2560.0f / 2.0f;  // 半宽 1280
+        constexpr float AOI_HALF_HEIGHT = 1560.0f / 2.0f; // 半高 780
 
-        std::vector<std::byte> payload = pkt.SerializePayload();
+        std::unordered_map<int, glm::vec2> observerMap;
+        observerMap.reserve(8);
 
-        Net::Server::BroadcastUnreliable(payload,Net::PacketType::EntityState,Net::ChannelType::Unreliable);
+        auto netView = ecsRegistry.view<NetID, Transform>();
+        for (auto [entity, netId, trans] : netView.each())
+        {
+            int connId = netId.GetOwnerConnId();
+            if (connId < 0)
+                continue;
+            if (!netId.GetNeedSync())
+                continue;
+
+            GameObject* obj = GetGameObject(entity);
+            if (!obj || !obj->IsActive())
+                continue;
+
+            observerMap[connId] = trans.GetWorldPosition();
+        }
+
+        if (observerMap.empty())
+            return;
+
+        uint32_t serverFrame = Game::GetServerFrame();
+
+        for (auto& [connId, observerPos] : observerMap)
+        {
+            std::vector<Net::EntityStateData> visibleStates;
+            visibleStates.reserve(allSyncStates.size() / 2);
+
+            float minX = observerPos.x - AOI_HALF_WIDTH;
+            float maxX = observerPos.x + AOI_HALF_WIDTH;
+            float minY = observerPos.y - AOI_HALF_HEIGHT;
+            float maxY = observerPos.y + AOI_HALF_HEIGHT;
+
+            for (const auto& state : allSyncStates)
+            {
+                if (state.netId == netView.get<NetID>(*netView.begin()).GetNetId())
+                {
+                    visibleStates.push_back(state);
+                    continue;
+                }
+
+                if (state.x >= minX && state.x <= maxX &&
+                    state.y >= minY && state.y <= maxY)
+                {
+                    visibleStates.push_back(state);
+                }
+            }
+
+            if (visibleStates.empty())
+                continue;
+
+            Net::EntityStatePacket pkt;
+            pkt.entities = std::move(visibleStates);
+            pkt.entityCount = static_cast<uint32_t>(pkt.entities.size());
+
+            std::vector<std::byte> payload = pkt.SerializePayload();
+
+            Net::Server::SendUnreliable(
+                connId,
+                payload,
+                Net::PacketType::EntityState,
+                Net::ChannelType::Unreliable
+            );
+        }
 #endif // PIXEL_SERVER
     }
 
