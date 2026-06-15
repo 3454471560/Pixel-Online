@@ -5,8 +5,6 @@
 #include <Core/Utils/File.h>
 
 #include <cstring>
-//#include <stdexcept>
-
 namespace Online::Log
 {
     bool Logger::Initialize()
