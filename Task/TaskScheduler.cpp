@@ -1,5 +1,6 @@
 #include<Task/TaskScheduler.h>
 #include<Thread/Common/FuncTable.h>
+
 #include<algorithm>
 
 bool Online::Task::TaskScheduler::Initialize()
